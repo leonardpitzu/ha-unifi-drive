@@ -1,0 +1,20 @@
+{
+  "domain": "unifi_unas",
+  "name": "UniFi Drive / UNAS",
+  "codeowners": ["@memphi2"],
+  "config_flow": true,
+  "documentation": "https://github.com/memphi2/ha-unifi-drive",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/memphi2/ha-unifi-drive/issues",
+  "requirements": ["unifi-discovery==1.4.0"],
+  "version": "0.8.4",
+  "zeroconf": [
+    { "type": "_smb._tcp.local.", "name": "*unas*" },
+    { "type": "_smb._tcp.local.", "name": "*unifi*drive*" },
+    { "type": "_http._tcp.local.", "name": "*unas*" },
+    { "type": "_https._tcp.local.", "name": "*unas*" },
+    { "type": "_http._tcp.local.", "name": "*unifi*drive*" },
+    { "type": "_https._tcp.local.", "name": "*unifi*drive*" }
+  ]
+}

@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  build_and_release:
+    name: Build and publish release asset
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          check-latest: true
+
+      - name: Audit public GitHub surfaces
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UNIFI_UNAS_FORBIDDEN_MARKERS: ${{ vars.UNIFI_UNAS_FORBIDDEN_MARKERS }}
+        run: python scripts/audit_github_public_surfaces.py --repo "$GITHUB_REPOSITORY"
+
+      - name: Run repository release preflight
+        env:
+          UNIFI_UNAS_FORBIDDEN_MARKERS: ${{ vars.UNIFI_UNAS_FORBIDDEN_MARKERS }}
+        run: python scripts/check_repo.py
+
+      - name: Build HACS release ZIP
+        run: |
+          mkdir -p dist
+          cd custom_components
+          zip -r ../dist/unifi_unas.zip unifi_unas -x "*/__pycache__/*" "*.pyc"
+
+      - name: Validate release ZIP privacy, legal and layout
+        env:
+          UNIFI_UNAS_FORBIDDEN_MARKERS: ${{ vars.UNIFI_UNAS_FORBIDDEN_MARKERS }}
+        run: python scripts/check_release_zip.py dist/unifi_unas.zip
+
+      - name: Upload release ZIP artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: unifi_unas_release_zip
+          path: dist/unifi_unas.zip
+
+      - name: Resolve release notes
+        id: release_notes
+        run: |
+          notes=".github/release-notes/${GITHUB_REF_NAME}.md"
+          if [ ! -f "$notes" ]; then
+            echo "Missing release notes: $notes" >&2
+            exit 1
+          fi
+          echo "body_path=$notes" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: dist/unifi_unas.zip
+          body_path: ${{ steps.release_notes.outputs.body_path }}
+          generate_release_notes: false
