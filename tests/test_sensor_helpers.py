@@ -1667,6 +1667,21 @@ def test_system_metadata_helpers_handle_alternate_network_and_app_shapes() -> No
     assert sensor_module._drive_version(payload) == "4.2.0"
 
 
+def test_cpu_temperature_is_rounded_to_recorded_precision() -> None:
+    """CPU temperature states should not churn on insignificant payload jitter."""
+    assert (
+        sensor_module._cpu_temperature({"_system": {"cpuTemperature": 48.54}})
+        == 48.5
+    )
+    assert sensor_module._cpu_temperature({"_system": {"cpu": {"temp": 48.55}}}) == 48.5
+    assert (
+        sensor_module._cpu_temperature(
+            {"_system": {"thermal": {"temperature": 48.56}}}
+        )
+        == 48.6
+    )
+
+
 def test_system_ip_accepts_ipv6_literals() -> None:
     """System IP monitoring should support IPv6 payload shapes."""
     payload = {"_system": {"ip": "[2001:0db8::10]"}}

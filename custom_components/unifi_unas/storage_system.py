@@ -79,7 +79,7 @@ def _cpu_temperature(data: dict[str, Any]) -> float | None:
         ("cpuTemperature", "cpu_temperature", "cpuTemp", "cpu_temp"),
     )
     if direct is not None:
-        return direct
+        return round(direct, 1)
 
     cpu = system.get("cpu")
     if isinstance(cpu, dict):
@@ -88,7 +88,7 @@ def _cpu_temperature(data: dict[str, Any]) -> float | None:
             ("temperature", "temperatureC", "temperature_c", "temp", "tempC"),
         )
         if value is not None:
-            return value
+            return round(value, 1)
 
     for nested in _dict_values(system, ("thermal", "temperatures", "sensors")):
         value = _first_number(
@@ -96,7 +96,7 @@ def _cpu_temperature(data: dict[str, Any]) -> float | None:
             ("cpu", "cpuTemperature", "cpu_temperature", "temperature", "temp"),
         )
         if value is not None:
-            return value
+            return round(value, 1)
     return None
 
 
