@@ -314,6 +314,55 @@ def test_validate_workflow_requires_homeassistant_compatibility_targets(
         module.check_validate_workflow_homeassistant_target()
 
 
+def test_validate_workflow_must_cover_hacs_minimum(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CI must test the Home Assistant minimum advertised in hacs.json."""
+    module = _load_check_repo_module()
+    workflow_path = tmp_path / "validate.yml"
+    hacs_path = tmp_path / "hacs.json"
+    workflow_path.write_text(
+        "strategy:\n"
+        "  matrix:\n"
+        "    include:\n"
+        "      - homeassistant: \"2024.8.0\"\n"
+        "        python: \"3.12\"\n"
+        "        pytest_homeassistant: \"0.13.152\"\n"
+        "      - homeassistant: \"2026.6.0\"\n"
+        "        python: \"3.14\"\n"
+        "        pytest_homeassistant: \"0.13.334\"\n"
+        "steps:\n"
+        "  - run: |\n"
+        "      pip install "
+        "-c \"https://raw.githubusercontent.com/home-assistant/core/${{ matrix.homeassistant }}/homeassistant/package_constraints.txt\" "
+        "\"homeassistant==${{ matrix.homeassistant }}\"\n"
+        "      pip install --no-deps \"pytest-homeassistant-custom-component==${{ matrix.pytest_homeassistant }}\"\n"
+        "      if Requirement(requirement).name == \"homeassistant\":\n"
+        "          continue\n"
+        "      version = md.version(\"homeassistant\")\n"
+        "      if version != expected:\n"
+        "          raise SystemExit()\n"
+        "      josepy<2.0; python_version < '3.13'\n",
+        encoding="utf-8",
+    )
+    hacs_path.write_text(
+        '{"name": "UniFi Drive / UNAS", "homeassistant": "2024.8.0"}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "VALIDATE_WORKFLOW_PATH", workflow_path)
+    monkeypatch.setattr(module, "HACS_PATH", hacs_path)
+
+    module.check_validate_workflow_homeassistant_target()
+
+    hacs_path.write_text(
+        '{"name": "UniFi Drive / UNAS", "homeassistant": "2025.1.0"}\n',
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit):
+        module.check_validate_workflow_homeassistant_target()
+
+
 def test_release_workflow_requires_privacy_gates(
     tmp_path,
     monkeypatch: pytest.MonkeyPatch,

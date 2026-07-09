@@ -25,6 +25,7 @@ CHANGELOG_PATH = ROOT / "CHANGELOG.md"
 RELEASE_NOTES_DIR = ROOT / ".github" / "release-notes"
 LICENSE_PATH = ROOT / "LICENSE"
 LEGAL_PATH = ROOT / "docs" / "legal.md"
+LTS_PATH = ROOT / "docs" / "lts.md"
 STRINGS_PATH = INTEGRATION_DIR / "strings.json"
 ICONS_PATH = INTEGRATION_DIR / "icons.json"
 TRANSLATION_DIR = INTEGRATION_DIR / "translations"
@@ -150,6 +151,10 @@ VALIDATE_WORKFLOW_HA_REQUIREMENT_PATTERN = re.compile(
 VALIDATE_WORKFLOW_PYTHON_PATTERN = re.compile(r"python:\s*[\"']?3\.14[\"']?")
 VALIDATE_WORKFLOW_MINIMUM_PYTHON_PATTERN = re.compile(r"python:\s*[\"']?3\.12[\"']?")
 RELEASE_WORKFLOW_PYTHON_PATTERN = re.compile(r"python-version:\s*[\"']?3\.14[\"']?")
+CURRENT_HOMEASSISTANT_TARGET = "2026.6.0"
+WORKFLOW_HOMEASSISTANT_MATRIX_PATTERN = re.compile(
+    r"homeassistant:\s*[\"']([^\"']+)[\"']"
+)
 CONFIG_FLOW_RELOAD_METHOD_PATTERNS = {
     "async_schedule_reload": re.compile(r"\.async_schedule_reload\("),
     "async_reload": re.compile(r"\.async_reload\("),
@@ -409,6 +414,20 @@ def load_json(path: Path) -> dict[str, Any]:
     return data
 
 
+def _hacs_homeassistant_minimum() -> str:
+    """Return the Home Assistant minimum version advertised to HACS users."""
+    hacs = load_json(HACS_PATH)
+    minimum = hacs.get("homeassistant")
+    if not isinstance(minimum, str) or not minimum.strip():
+        fail("hacs.json must define a non-empty homeassistant minimum version")
+    return minimum
+
+
+def _workflow_homeassistant_versions(workflow_text: str) -> set[str]:
+    """Return Home Assistant matrix versions from the validate workflow."""
+    return set(WORKFLOW_HOMEASSISTANT_MATRIX_PATTERN.findall(workflow_text))
+
+
 def ensure_file(path: Path) -> None:
     """Ensure a file exists and is not empty."""
     if not path.exists():
@@ -656,8 +675,7 @@ def check_hacs() -> None:
         fail("manifest.json name must be a non-empty string")
     if hacs.get("name") != expected_name:
         fail(f"hacs.json name must match manifest.json name {expected_name!r}")
-    if "homeassistant" not in hacs:
-        fail("hacs.json must define homeassistant minimum version")
+    _hacs_homeassistant_minimum()
     if hacs.get("render_readme") is not True:
         fail("hacs.json must set render_readme true when info.md is absent")
     ok("hacs.json validated")
@@ -907,12 +925,14 @@ def check_workflow_python_versions() -> None:
 def check_validate_workflow_homeassistant_target() -> None:
     """Validate that CI runs tests against the current Home Assistant target."""
     workflow_text = VALIDATE_WORKFLOW_PATH.read_text(encoding="utf-8")
+    workflow_versions = _workflow_homeassistant_versions(workflow_text)
+    hacs_minimum = _hacs_homeassistant_minimum()
     missing: list[str] = []
 
-    if '"2024.8.0"' not in workflow_text:
-        missing.append("Home Assistant 2024.8.0 matrix leg")
-    if '"2026.6.0"' not in workflow_text:
-        missing.append("Home Assistant 2026.6.0 matrix leg")
+    if hacs_minimum not in workflow_versions:
+        missing.append(f"Home Assistant HACS minimum matrix leg {hacs_minimum}")
+    if CURRENT_HOMEASSISTANT_TARGET not in workflow_versions:
+        missing.append(f"Home Assistant current target matrix leg {CURRENT_HOMEASSISTANT_TARGET}")
     if '"0.13.152"' not in workflow_text:
         missing.append("pytest-homeassistant-custom-component 0.13.152")
     if '"0.13.334"' not in workflow_text:
@@ -1158,6 +1178,7 @@ def main() -> None:
     ensure_file(CHANGELOG_PATH)
     ensure_file(LICENSE_PATH)
     ensure_file(LEGAL_PATH)
+    ensure_file(LTS_PATH)
     ensure_file(MANIFEST_PATH)
     ensure_file(HACS_PATH)
     ensure_file(QUALITY_SCALE_PATH)

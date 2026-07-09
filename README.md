@@ -308,6 +308,7 @@ Removing only the files does not delete the Home Assistant config entry.
 | Troubleshooting guide | [docs/troubleshooting.md](docs/troubleshooting.md) |
 | Known limitations | [docs/known_limitations.md](docs/known_limitations.md) |
 | Supported model and firmware evidence | [docs/firmware_matrix.md](docs/firmware_matrix.md) |
+| Maintenance and LTS policy | [docs/lts.md](docs/lts.md) |
 | Validation and release gates | [docs/validation.md](docs/validation.md) |
 | Bronze readiness summary | [docs/bronze_readiness.md](docs/bronze_readiness.md) |
 | Platinum readiness audit snapshot | [docs/platinum_readiness.md](docs/platinum_readiness.md) |
