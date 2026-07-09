@@ -60,6 +60,8 @@ def test_snapshot_inventory_extracts_nested_snapshot_lists() -> None:
         "snapshot_ids": ["new", "old"],
         "snapshot_names": ["New snapshot", "Old snapshot"],
         "snapshot_descriptions": [],
+        "snapshot_metadata_truncated": False,
+        "snapshot_metadata_limit": 10,
         "recent_snapshots": [
             {
                 "id": "new",
@@ -132,6 +134,7 @@ def test_snapshot_inventory_uses_collection_total_for_state_count() -> None:
     assert inventory["inventory_truncated"] is True
     assert inventory["latest_snapshot_description"] == "Before maintenance"
     assert inventory["snapshot_descriptions"] == ["Before maintenance"]
+    assert inventory["snapshot_metadata_truncated"] is True
     assert inventory["recent_snapshots"][0] == {
         "id": "new",
         "name": None,
@@ -164,6 +167,34 @@ def test_snapshot_inventory_recent_list_keeps_undated_items() -> None:
         "undated-first",
         "undated-last",
     ]
+
+
+def test_snapshot_inventory_limits_retained_snapshot_metadata() -> None:
+    """Snapshot metadata retained in HA state should have a hard upper bound."""
+    payload = {
+        "snapshots": [
+            {
+                "id": f"snap-{index:02d}",
+                "name": f"Snapshot {index:02d}",
+                "description": f"Description {index:02d}",
+                "createdAt": f"2026-05-{index + 1:02d}T12:00:00Z",
+            }
+            for index in range(12)
+        ]
+    }
+
+    inventory = snapshot_inventory_module.extract_snapshot_inventory(payload)
+
+    assert inventory["snapshot_count"] == 12
+    assert inventory["returned_snapshot_count"] == 12
+    assert inventory["snapshot_metadata_limit"] == 10
+    assert inventory["snapshot_metadata_truncated"] is True
+    assert len(inventory["snapshot_ids"]) == 10
+    assert len(inventory["snapshot_names"]) == 10
+    assert len(inventory["snapshot_descriptions"]) == 10
+    assert len(inventory["recent_snapshots"]) == 10
+    assert inventory["snapshot_ids"][0] == "snap-11"
+    assert inventory["snapshot_ids"][-1] == "snap-02"
 
 
 def test_snapshot_inventory_falls_back_to_payload_order_without_dates() -> None:
@@ -205,6 +236,8 @@ def test_snapshot_inventory_ignores_unknown_payload_shapes() -> None:
         "snapshot_ids": [],
         "snapshot_names": [],
         "snapshot_descriptions": [],
+        "snapshot_metadata_truncated": False,
+        "snapshot_metadata_limit": 10,
         "recent_snapshots": [],
         "recent_snapshot_count": 0,
         "recent_snapshot_limit": 10,

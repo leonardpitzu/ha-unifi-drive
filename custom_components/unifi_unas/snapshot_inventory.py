@@ -36,7 +36,7 @@ _SNAPSHOT_TIME_KEYS = (
 _COLLECTION_TOTAL_KEYS = ("total", "totalCount", "total_count")
 _COLLECTION_OFFSET_KEYS = ("offset", "skip")
 _COLLECTION_LIMIT_KEYS = ("limit", "pageSize", "page_size")
-_RECENT_SNAPSHOT_LIMIT = 10
+SNAPSHOT_INVENTORY_PREVIEW_LIMIT = 10
 
 SNAPSHOT_INVENTORY_STATUS_OK = "ok"
 SNAPSHOT_INVENTORY_STATUS_FALLBACK = "fallback"
@@ -80,6 +80,12 @@ def extract_snapshot_inventory(payload: Any) -> dict[str, Any]:
     oldest = _oldest_snapshot(dated_snapshots, snapshots)
     recent_snapshots = _recent_snapshots(dated_snapshots, snapshots)
 
+    preview_snapshots = [
+        _public_snapshot_item(item)
+        for item in recent_snapshots[:SNAPSHOT_INVENTORY_PREVIEW_LIMIT]
+    ]
+    snapshot_metadata_truncated = snapshot_count > len(preview_snapshots)
+
     return {
         "snapshot_count": snapshot_count,
         "snapshot_count_source": snapshot_count_source,
@@ -97,25 +103,26 @@ def extract_snapshot_inventory(payload: Any) -> dict[str, Any]:
         "latest_snapshot_description": newest.get("description") if newest else None,
         "oldest_snapshot_description": oldest.get("description") if oldest else None,
         "snapshot_ids": [
-            item["id"] for item in snapshots if isinstance(item.get("id"), str)
+            item["id"] for item in preview_snapshots if isinstance(item.get("id"), str)
         ],
         "snapshot_names": [
-            item["name"] for item in snapshots if isinstance(item.get("name"), str)
+            item["name"]
+            for item in preview_snapshots
+            if isinstance(item.get("name"), str)
         ],
         "snapshot_descriptions": [
             item["description"]
-            for item in snapshots
+            for item in preview_snapshots
             if isinstance(item.get("description"), str)
         ],
-        "recent_snapshots": [
-            _public_snapshot_item(item)
-            for item in recent_snapshots[:_RECENT_SNAPSHOT_LIMIT]
-        ],
-        "recent_snapshot_count": min(len(recent_snapshots), _RECENT_SNAPSHOT_LIMIT),
-        "recent_snapshot_limit": _RECENT_SNAPSHOT_LIMIT,
+        "snapshot_metadata_truncated": snapshot_metadata_truncated,
+        "snapshot_metadata_limit": SNAPSHOT_INVENTORY_PREVIEW_LIMIT,
+        "recent_snapshots": preview_snapshots,
+        "recent_snapshot_count": len(preview_snapshots),
+        "recent_snapshot_limit": SNAPSHOT_INVENTORY_PREVIEW_LIMIT,
         "inventory_truncated": snapshot_count > min(
             len(recent_snapshots),
-            _RECENT_SNAPSHOT_LIMIT,
+            SNAPSHOT_INVENTORY_PREVIEW_LIMIT,
         ),
     }
 

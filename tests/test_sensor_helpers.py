@@ -923,6 +923,8 @@ def test_snapshot_inventory_sensor_exposes_compact_inventory_metadata() -> None:
                 "snapshot_ids": ["new", "old"],
                 "snapshot_names": ["New", "Old"],
                 "snapshot_descriptions": ["Before maintenance"],
+                "snapshot_metadata_truncated": False,
+                "snapshot_metadata_limit": 10,
                 "recent_snapshots": [
                     {
                         "id": "new",
@@ -957,6 +959,8 @@ def test_snapshot_inventory_sensor_exposes_compact_inventory_metadata() -> None:
     assert attributes["latest_snapshot_id"] == "new"
     assert attributes["latest_snapshot_description"] == "Before maintenance"
     assert attributes["snapshot_ids"] == ["new", "old"]
+    assert attributes["snapshot_metadata_truncated"] is False
+    assert attributes["snapshot_metadata_limit"] == 10
     assert attributes["recent_snapshots"][0]["id"] == "new"
 
 
@@ -1016,6 +1020,8 @@ def test_snapshot_inventory_sensor_tolerates_malformed_inventory_state() -> None
     assert attributes["snapshot_inventory_available"] is False
     assert attributes["snapshot_inventory_status"] == "fallback"
     assert attributes["recent_snapshots"] == []
+    assert attributes["snapshot_metadata_truncated"] is False
+    assert attributes["snapshot_metadata_limit"] == 10
 
 
 def test_throughput_keeps_explicit_aggregate_values() -> None:

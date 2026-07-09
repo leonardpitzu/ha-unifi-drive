@@ -28,6 +28,7 @@ from .snapshot_entities import (
     async_setup_snapshot_target_entities,
 )
 from .snapshot_inventory import (
+    SNAPSHOT_INVENTORY_PREVIEW_LIMIT,
     SNAPSHOT_INVENTORY_STATUS_FALLBACK,
     SNAPSHOT_INVENTORY_STATUS_OK,
 )
@@ -370,6 +371,8 @@ class UnifiUnasSnapshotInventorySensor(
                     "inventory_offset": None,
                     "inventory_limit": None,
                     "inventory_truncated": False,
+                    "snapshot_metadata_truncated": False,
+                    "snapshot_metadata_limit": SNAPSHOT_INVENTORY_PREVIEW_LIMIT,
                     "recent_snapshots": [],
                 }
             )
@@ -401,6 +404,14 @@ class UnifiUnasSnapshotInventorySensor(
                 "snapshot_ids": inventory.get("snapshot_ids", []),
                 "snapshot_names": inventory.get("snapshot_names", []),
                 "snapshot_descriptions": inventory.get("snapshot_descriptions", []),
+                "snapshot_metadata_truncated": inventory.get(
+                    "snapshot_metadata_truncated",
+                    False,
+                ),
+                "snapshot_metadata_limit": inventory.get(
+                    "snapshot_metadata_limit",
+                    SNAPSHOT_INVENTORY_PREVIEW_LIMIT,
+                ),
                 "recent_snapshots": inventory.get("recent_snapshots", []),
                 "recent_snapshot_count": inventory.get("recent_snapshot_count"),
                 "recent_snapshot_limit": inventory.get("recent_snapshot_limit"),
