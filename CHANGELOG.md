@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.8.5 - LTS and runtime efficiency hardening
+
+Patch release for `v0.8.5`:
+
+- Reduces snapshot inventory memory and offline-cache overhead by keeping only
+  the target metadata needed for entity state, diagnostics and repairs.
+- Limits retained snapshot inventory metadata to stable, support-relevant fields
+  so repeated polling does not keep unnecessary payload fragments alive.
+- Rounds CPU temperature sensor states for better recorder stability and fewer
+  noisy database writes.
+- Removes config-flow reload calls that conflict with Home Assistant's
+  config-entry update-listener deprecation path for `2026.6` and later.
+- Adds repository validation to prevent that deprecated config-flow reload
+  pattern from returning.
+- Documents the maintenance/LTS policy for the `0.8.x` line and validates that
+  the Home Assistant minimum advertised to HACS remains covered by CI.
+
 ## v0.8.4 - Throughput fallback and compatibility validation
 
 Patch release for `v0.8.4`:
