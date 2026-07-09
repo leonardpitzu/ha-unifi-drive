@@ -171,35 +171,6 @@ def _normalize_host_input(host_input: str) -> tuple[str, int | None, bool | None
     return _normalize_host_input_impl(host_input)
 
 
-def _entry_update_would_change(
-    entry: UnifiDriveConfigEntry,
-    *,
-    data: FlowFormInput | None = None,
-    data_updates: FlowFormInput | None = None,
-    options: FlowFormInput | None = None,
-) -> bool:
-    """Return whether a config-entry update listener will be fired."""
-    if data is not None and dict(entry.data) != dict(data):
-        return True
-    if data_updates is not None:
-        updated_data = dict(entry.data)
-        updated_data.update(data_updates)
-        if dict(entry.data) != updated_data:
-            return True
-    return bool(options is not None and dict(entry.options) != dict(options))
-
-
-def _async_schedule_reload_if_unchanged(
-    hass: HomeAssistant,
-    entry: UnifiDriveConfigEntry,
-    *,
-    entry_would_change: bool,
-) -> None:
-    """Keep successful no-op reauth/reconfigure flows from staying stale."""
-    if not entry_would_change:
-        hass.config_entries.async_schedule_reload(entry.entry_id)
-
-
 async def _async_validate_for_form(
     hass: HomeAssistant,
     data: dict[str, Any],
@@ -598,22 +569,11 @@ class UnifiUnasConfigFlow(
                         dict(entry.data) | data_updates,
                     )
                     options = feature_options_from_entry(entry)
-                    entry_would_change = _entry_update_would_change(
+                    return self.async_update_and_abort(
                         entry,
                         data=entry_data,
                         options=options,
                     )
-                    result = self.async_update_and_abort(
-                        entry,
-                        data=entry_data,
-                        options=options,
-                    )
-                    _async_schedule_reload_if_unchanged(
-                        self.hass,
-                        entry,
-                        entry_would_change=entry_would_change,
-                    )
-                    return result
 
         return self.async_show_form(
             step_id="reauth_confirm",
@@ -677,22 +637,11 @@ class UnifiUnasConfigFlow(
                             data,
                         )
                         options = merged_feature_options(entry, data)
-                        entry_would_change = _entry_update_would_change(
+                        return self.async_update_and_abort(
                             entry,
                             data=entry_data,
                             options=options,
                         )
-                        result = self.async_update_and_abort(
-                            entry,
-                            data=entry_data,
-                            options=options,
-                        )
-                        _async_schedule_reload_if_unchanged(
-                            self.hass,
-                            entry,
-                            entry_would_change=entry_would_change,
-                        )
-                        return result
 
         return self.async_show_form(
             step_id="reconfigure_connection",
@@ -726,22 +675,11 @@ class UnifiUnasConfigFlow(
                 else:
                     entry_data = data_without_feature_options(dict(entry.data))
                     options = merged_feature_options(entry, data)
-                    entry_would_change = _entry_update_would_change(
+                    return self.async_update_and_abort(
                         entry,
                         data=entry_data,
                         options=options,
                     )
-                    result = self.async_update_and_abort(
-                        entry,
-                        data=entry_data,
-                        options=options,
-                    )
-                    _async_schedule_reload_if_unchanged(
-                        self.hass,
-                        entry,
-                        entry_would_change=entry_would_change,
-                    )
-                    return result
 
         return self.async_show_form(
             step_id="reconfigure_features",

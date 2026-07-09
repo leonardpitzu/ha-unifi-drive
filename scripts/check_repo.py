@@ -29,6 +29,7 @@ STRINGS_PATH = INTEGRATION_DIR / "strings.json"
 ICONS_PATH = INTEGRATION_DIR / "icons.json"
 TRANSLATION_DIR = INTEGRATION_DIR / "translations"
 QUALITY_SCALE_PATH = INTEGRATION_DIR / "quality_scale.yaml"
+CONFIG_FLOW_PATH = INTEGRATION_DIR / "config_flow.py"
 PY_TYPED_PATH = INTEGRATION_DIR / "py.typed"
 COVERAGE_PATH = ROOT / ".coveragerc"
 MYPY_PATH = ROOT / "mypy.ini"
@@ -149,6 +150,11 @@ VALIDATE_WORKFLOW_HA_REQUIREMENT_PATTERN = re.compile(
 VALIDATE_WORKFLOW_PYTHON_PATTERN = re.compile(r"python:\s*[\"']?3\.14[\"']?")
 VALIDATE_WORKFLOW_MINIMUM_PYTHON_PATTERN = re.compile(r"python:\s*[\"']?3\.12[\"']?")
 RELEASE_WORKFLOW_PYTHON_PATTERN = re.compile(r"python-version:\s*[\"']?3\.14[\"']?")
+CONFIG_FLOW_RELOAD_METHOD_PATTERNS = {
+    "async_schedule_reload": re.compile(r"\.async_schedule_reload\("),
+    "async_reload": re.compile(r"\.async_reload\("),
+    "async_update_reload_and_abort": re.compile(r"\basync_update_reload_and_abort\("),
+}
 
 EXPECTED_README_TITLE = "Home Assistant integration for UniFi Drive / UNAS (Unofficial)"
 README_LEGAL_MARKERS = (
@@ -838,6 +844,23 @@ def check_coverage_gate() -> None:
     ok("Coverage gate validated")
 
 
+def check_config_flow_reload_methods() -> None:
+    """Avoid config-flow reload calls that conflict with update listeners."""
+    config_flow_text = CONFIG_FLOW_PATH.read_text(encoding="utf-8")
+    offenders = [
+        method
+        for method, pattern in CONFIG_FLOW_RELOAD_METHOD_PATTERNS.items()
+        if pattern.search(config_flow_text)
+    ]
+
+    if offenders:
+        fail(
+            "config_flow.py must use async_update_and_abort without reload methods: "
+            + ", ".join(offenders)
+        )
+    ok("Config-flow reload compatibility validated")
+
+
 def check_workflow_action_versions() -> None:
     """Keep GitHub Actions workflows off deprecated Node.js 20 actions."""
     offenders: list[str] = []
@@ -1157,6 +1180,7 @@ def main() -> None:
     check_translations()
     check_quality_scale()
     check_coverage_gate()
+    check_config_flow_reload_methods()
     check_workflow_action_versions()
     check_workflow_python_versions()
     check_validate_workflow_homeassistant_target()

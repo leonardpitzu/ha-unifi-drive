@@ -133,6 +133,29 @@ def test_coverage_gate_requires_config_and_workflow_commands(
         module.check_coverage_gate()
 
 
+def test_config_flow_reload_methods_are_rejected(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Config-flow reload helpers should stay out of config_flow.py."""
+    module = _load_check_repo_module()
+    config_flow_path = tmp_path / "config_flow.py"
+    config_flow_path.write_text(
+        "return self.async_update_and_abort(entry)\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "CONFIG_FLOW_PATH", config_flow_path)
+
+    module.check_config_flow_reload_methods()
+
+    config_flow_path.write_text(
+        "self.hass.config_entries.async_schedule_reload(entry.entry_id)\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit):
+        module.check_config_flow_reload_methods()
+
+
 def test_workflow_action_versions_reject_node20_actions(
     tmp_path,
     monkeypatch: pytest.MonkeyPatch,

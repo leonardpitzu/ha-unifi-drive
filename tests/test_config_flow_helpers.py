@@ -2093,64 +2093,12 @@ def test_options_flow_keeps_offline_guard() -> None:
     assert result["errors"] == {"base": "offline_without_wol"}
 
 
-def test_entry_update_would_change_checks_data_and_options() -> None:
-    """Reload fallback should only run for no-op entry updates."""
-    entry = types.SimpleNamespace(
-        data={"username": "user", "scan_interval": 30},
-        options={"scan_interval": 120},
-    )
+def test_config_flow_does_not_call_reload_methods() -> None:
+    """Config flows must not reload entries when an update listener is registered."""
+    source = Path(config_flow_module.__file__).read_text(encoding="utf-8")
 
-    assert (
-        config_flow_module._entry_update_would_change(
-            entry,
-            data={"username": "other", "scan_interval": 30},
-        )
-        is True
-    )
-    assert (
-        config_flow_module._entry_update_would_change(
-            entry,
-            data_updates={"username": "other"},
-        )
-        is True
-    )
-    assert (
-        config_flow_module._entry_update_would_change(
-            entry,
-            options={"scan_interval": 180},
-        )
-        is True
-    )
-    assert (
-        config_flow_module._entry_update_would_change(
-            entry,
-            data_updates={"username": "user"},
-            options={"scan_interval": 120},
-        )
-        is False
-    )
-
-
-def test_schedule_reload_if_unchanged_skips_changed_updates() -> None:
-    """Changed updates reload through the entry listener, not the fallback."""
-    reloads: list[str] = []
-    hass = types.SimpleNamespace(
-        config_entries=types.SimpleNamespace(async_schedule_reload=reloads.append)
-    )
-    entry = types.SimpleNamespace(entry_id="entry-1")
-
-    config_flow_module._async_schedule_reload_if_unchanged(
-        hass,
-        entry,
-        entry_would_change=True,
-    )
-    config_flow_module._async_schedule_reload_if_unchanged(
-        hass,
-        entry,
-        entry_would_change=False,
-    )
-
-    assert reloads == ["entry-1"]
+    assert "async_schedule_reload" not in source
+    assert "async_update_reload_and_abort" not in source
 
 
 def test_normalize_host_accepts_dns_names_urls_and_ports() -> None:
