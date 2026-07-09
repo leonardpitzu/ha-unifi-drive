@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from heapq import heappush, heapreplace
 from typing import Any
 
 _SNAPSHOT_LIST_KEYS = (
@@ -60,37 +61,77 @@ def snapshot_inventory_error_is_sticky(reason: str | None) -> bool:
 
 def extract_snapshot_inventory(payload: Any) -> dict[str, Any]:
     """Return a compact, UI-safe snapshot inventory summary."""
-    snapshots = [
-        _snapshot_item(item)
-        for item in _snapshot_items(payload)
-        if isinstance(item, dict)
-    ]
-    returned_count = len(snapshots)
+    returned_count = 0
+    locked_count = 0
+    first_snapshot: dict[str, Any] | None = None
+    last_snapshot: dict[str, Any] | None = None
+    newest: dict[str, Any] | None = None
+    newest_datetime: datetime | None = None
+    oldest: dict[str, Any] | None = None
+    oldest_datetime: datetime | None = None
+    dated_preview: list[tuple[datetime, int, int, dict[str, Any]]] = []
+    undated_preview: list[dict[str, Any]] = []
+
+    for raw_item in _snapshot_items(payload):
+        if not isinstance(raw_item, dict):
+            continue
+
+        snapshot = _snapshot_item(raw_item)
+        order = returned_count
+        returned_count += 1
+        if snapshot.get("locked") is True:
+            locked_count += 1
+        if first_snapshot is None:
+            first_snapshot = snapshot
+        last_snapshot = snapshot
+
+        created_datetime = snapshot.get("_created_datetime")
+        if isinstance(created_datetime, datetime):
+            if newest_datetime is None or created_datetime > newest_datetime:
+                newest = snapshot
+                newest_datetime = created_datetime
+            if oldest_datetime is None or created_datetime < oldest_datetime:
+                oldest = snapshot
+                oldest_datetime = created_datetime
+            heap_item = (created_datetime, -order, order, snapshot)
+            if len(dated_preview) < SNAPSHOT_INVENTORY_PREVIEW_LIMIT:
+                heappush(dated_preview, heap_item)
+            elif heap_item > dated_preview[0]:
+                heapreplace(dated_preview, heap_item)
+        elif len(undated_preview) < SNAPSHOT_INVENTORY_PREVIEW_LIMIT:
+            undated_preview.append(snapshot)
+
     inventory_total = _collection_int(payload, _COLLECTION_TOTAL_KEYS)
     snapshot_count = inventory_total if inventory_total is not None else returned_count
     snapshot_count_source = (
         "inventory_total" if inventory_total is not None else "inventory_items"
     )
-    dated_snapshots = [
-        item
-        for item in snapshots
-        if isinstance(item.get("_created_datetime"), datetime)
-    ]
-    newest = _newest_snapshot(dated_snapshots, snapshots)
-    oldest = _oldest_snapshot(dated_snapshots, snapshots)
-    recent_snapshots = _recent_snapshots(dated_snapshots, snapshots)
+    if newest is None:
+        newest = first_snapshot
+    if oldest is None:
+        oldest = last_snapshot
 
     preview_snapshots = [
-        _public_snapshot_item(item)
-        for item in recent_snapshots[:SNAPSHOT_INVENTORY_PREVIEW_LIMIT]
+        _public_snapshot_item(item[3])
+        for item in sorted(dated_preview, reverse=True)
     ]
+    if not preview_snapshots:
+        preview_snapshots = [
+            _public_snapshot_item(item)
+            for item in undated_preview[:SNAPSHOT_INVENTORY_PREVIEW_LIMIT]
+        ]
+    elif len(preview_snapshots) < SNAPSHOT_INVENTORY_PREVIEW_LIMIT:
+        remaining = SNAPSHOT_INVENTORY_PREVIEW_LIMIT - len(preview_snapshots)
+        preview_snapshots.extend(
+            _public_snapshot_item(item) for item in undated_preview[:remaining]
+        )
     snapshot_metadata_truncated = snapshot_count > len(preview_snapshots)
 
     return {
         "snapshot_count": snapshot_count,
         "snapshot_count_source": snapshot_count_source,
         "returned_snapshot_count": returned_count,
-        "locked_count": sum(1 for item in snapshots if item.get("locked") is True),
+        "locked_count": locked_count,
         "inventory_total": inventory_total,
         "inventory_offset": _collection_int(payload, _COLLECTION_OFFSET_KEYS),
         "inventory_limit": _collection_int(payload, _COLLECTION_LIMIT_KEYS),
@@ -121,7 +162,7 @@ def extract_snapshot_inventory(payload: Any) -> dict[str, Any]:
         "recent_snapshot_count": len(preview_snapshots),
         "recent_snapshot_limit": SNAPSHOT_INVENTORY_PREVIEW_LIMIT,
         "inventory_truncated": snapshot_count > min(
-            len(recent_snapshots),
+            returned_count,
             SNAPSHOT_INVENTORY_PREVIEW_LIMIT,
         ),
     }
@@ -165,46 +206,6 @@ def _snapshot_item(value: dict[str, Any]) -> dict[str, Any]:
         "created_at": created_at,
         "_created_datetime": created_datetime,
     }
-
-
-def _newest_snapshot(
-    dated_snapshots: list[dict[str, Any]],
-    snapshots: list[dict[str, Any]],
-) -> dict[str, Any] | None:
-    """Return the newest snapshot, falling back to API order when needed."""
-    if dated_snapshots:
-        return max(dated_snapshots, key=lambda item: item["_created_datetime"])
-    return snapshots[0] if snapshots else None
-
-
-def _oldest_snapshot(
-    dated_snapshots: list[dict[str, Any]],
-    snapshots: list[dict[str, Any]],
-) -> dict[str, Any] | None:
-    """Return the oldest snapshot, falling back to API order when needed."""
-    if dated_snapshots:
-        return min(dated_snapshots, key=lambda item: item["_created_datetime"])
-    return snapshots[-1] if snapshots else None
-
-
-def _recent_snapshots(
-    dated_snapshots: list[dict[str, Any]],
-    snapshots: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    """Return recent snapshots in newest-first order."""
-    if not dated_snapshots:
-        return list(snapshots)
-
-    dated_ids = {id(item) for item in dated_snapshots}
-    undated_snapshots = [item for item in snapshots if id(item) not in dated_ids]
-    return [
-        *sorted(
-            dated_snapshots,
-            key=lambda item: item["_created_datetime"],
-            reverse=True,
-        ),
-        *undated_snapshots,
-    ]
 
 
 def _public_snapshot_item(item: dict[str, Any]) -> dict[str, Any]:

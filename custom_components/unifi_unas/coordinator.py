@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 import logging
 from typing import TYPE_CHECKING, Any
@@ -176,7 +175,7 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
                     message,
                 )
                 self._connection_transient_logged = True
-            return deepcopy(cached_data)
+            return cached_data
 
         self.is_device_online = False
         if not self._connection_offline_logged:
@@ -400,12 +399,14 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
 
     @staticmethod
     def _with_offline_status(data: dict[str, Any]) -> dict[str, Any]:
-        """Return a defensive copy of data with `_system.status=offline`."""
-        payload = deepcopy(data)
+        """Return a defensive shallow copy with `_system.status=offline`."""
+        payload = dict(data)
         system = payload.get("_system")
         if not isinstance(system, dict):
             system = {}
-            payload["_system"] = system
+        else:
+            system = dict(system)
+        payload["_system"] = system
         system["status"] = "offline"
         return payload
 

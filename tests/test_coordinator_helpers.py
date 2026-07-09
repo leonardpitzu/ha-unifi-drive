@@ -739,6 +739,25 @@ def test_repeated_cached_storage_failures_mark_device_offline() -> None:
     assert storage["_system"]["status"] == "offline"
 
 
+def test_offline_cached_storage_status_does_not_mutate_cache() -> None:
+    """Offline fallback should not mutate the last successful coordinator payload."""
+    client, coordinator = _transient_storage_coordinator()
+
+    cached_storage = asyncio.run(coordinator._async_update_data())
+    coordinator.data = cached_storage
+
+    client.storage_failures_remaining = 2
+    transient_storage = asyncio.run(coordinator._async_update_data())
+    coordinator.data = cached_storage
+    offline_storage = asyncio.run(coordinator._async_update_data())
+
+    assert transient_storage is cached_storage
+    assert cached_storage["_system"]["status"] == "online"
+    assert offline_storage is not cached_storage
+    assert offline_storage["_system"]["status"] == "offline"
+    assert cached_storage["_system"]["status"] == "online"
+
+
 def test_connection_failure_logging_is_not_repeated(caplog) -> None:
     """Offline polling should log one unavailable and one recovery message."""
     client, coordinator = _transient_storage_coordinator()
