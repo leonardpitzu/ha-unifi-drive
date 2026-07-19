@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
-from homeassistant.const import CONF_HOST, EntityCategory
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -33,7 +33,6 @@ from .snapshot_inventory import (
     SNAPSHOT_INVENTORY_STATUS_OK,
 )
 from .storage_helpers import (
-    _core_metadata_available,
     _drive_key,
     _drive_name,
     _legacy_drive_index,
@@ -159,23 +158,13 @@ class UnifiUnasAggregateSensor(UnifiUnasBaseSensor):
             return "offline"
         if not self.coordinator.data:
             return None
-        value = self.entity_description.value_fn(self.coordinator.data)
-        if value is None and self.entity_description.key == "system_ip":
-            host = str(self._entry.data.get(CONF_HOST, "")).strip()
-            return host or None
-        return value
+        return self.entity_description.value_fn(self.coordinator.data)
 
     @property
     def available(self) -> bool:
         """Return entity availability."""
         if self.entity_description.key == "system_status":
             return True
-        if self.entity_description.requires_core_metadata and not _core_metadata_available(
-            self.coordinator.data
-        ):
-            # UniFi API keys cannot read the UniFi OS core /api/system payload,
-            # so these sensors are unavailable rather than stuck "unknown".
-            return False
         return bool(super().available)
 
     @property

@@ -60,7 +60,6 @@ class AggregateSensorDescription(SensorEntityDescription):  # type: ignore[misc]
     """Description of an aggregate UNAS sensor."""
 
     value_fn: Callable[[dict[str, Any]], StateType]
-    requires_core_metadata: bool = False
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -179,21 +178,18 @@ AGGREGATE_SENSOR_TYPES: tuple[AggregateSensorDescription, ...] = (
         native_unit_of_measurement="h",
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
-        requires_core_metadata=True,
         value_fn=lambda data: _system_uptime_hours(data),
     ),
     AggregateSensorDescription(
         key="unifi_os_version",
         translation_key="unifi_os_version",
         entity_category=EntityCategory.DIAGNOSTIC,
-        requires_core_metadata=True,
         value_fn=lambda data: _unifi_os_version(data),
     ),
     AggregateSensorDescription(
         key="drive_version",
         translation_key="drive_version",
         entity_category=EntityCategory.DIAGNOSTIC,
-        requires_core_metadata=True,
         value_fn=lambda data: _drive_version(data),
     ),
     AggregateSensorDescription(
@@ -203,7 +199,6 @@ AGGREGATE_SENSOR_TYPES: tuple[AggregateSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         suggested_display_precision=1,
-        requires_core_metadata=True,
         value_fn=lambda data: _cpu_temperature(data),
     ),
     AggregateSensorDescription(

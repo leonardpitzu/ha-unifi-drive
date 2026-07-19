@@ -87,7 +87,6 @@ from .storage_throughput import (
     _write_throughput_mb_s,
 )
 from .system_metadata import (
-    core_metadata_available as _core_metadata_available,
     drive_version as _drive_version,
     normalized_token as _normalized_token,
     system_payload as _system_payload,
@@ -165,7 +164,6 @@ __all__ = [
     "_throughput_key_hints",
     "_throughput_mb_s",
     "_write_throughput_mb_s",
-    "_core_metadata_available",
     "_drive_version",
     "_normalized_token",
     "_system_payload",
