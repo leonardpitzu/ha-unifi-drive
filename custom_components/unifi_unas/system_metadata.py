@@ -17,6 +17,29 @@ def system_payload(data: dict[str, Any]) -> dict[str, Any]:
     return system if isinstance(system, dict) else {}
 
 
+def core_metadata_available(data: Any) -> bool:
+    """Return whether authenticated UniFi OS core metadata was retrieved.
+
+    UniFi API keys authenticate the Drive application API (``/proxy/drive/*``)
+    but not the UniFi OS core ``/api/system`` endpoint, which then answers with
+    a reduced anonymous payload that omits ``cpu``, ``uptime``, ``apps`` and
+    ``hardware.firmwareVersion``. The authenticated payload always carries a
+    numeric ``uptime`` alongside the ``cpu`` and ``apps`` sections, so their
+    absence is a reliable signal that core-only sensors cannot be populated.
+    """
+    if not isinstance(data, dict):
+        return False
+    system = system_payload(data)
+    if not system:
+        return False
+    if isinstance(system.get("cpu"), dict) or isinstance(system.get("apps"), dict):
+        return True
+    uptime = system.get("uptime")
+    if isinstance(uptime, bool):
+        return False
+    return isinstance(uptime, (int, float))
+
+
 def unifi_os_version(data: dict[str, Any]) -> str | None:
     """Return UniFi OS firmware version."""
     system = system_payload(data)
