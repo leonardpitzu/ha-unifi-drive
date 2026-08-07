@@ -5,6 +5,16 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from homeassistant.components.binary_sensor import BinarySensorDeviceClass
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
+
+from .sensor_types import (
+    AggregateBinarySensorDescription,
+    AggregateSensorDescription,
+    PoolBinarySensorDescription,
+    PoolSensorDescription,
+)
 from .storage_common import (
     DEGRADED_STATUSES,
     DISK_PROBLEM_HINTS,
@@ -20,6 +30,8 @@ from .storage_drives import (
     _cache_drives,
     _drive_life_span,
     _pool_at_risk_drive_count,
+    _pool_average_drive_temperature,
+    _pool_drive_count,
     _pool_drive_temperatures,
     _pool_drives,
 )
@@ -705,3 +717,156 @@ def _find_progress_in_tree(
                 return found
 
     return None
+
+
+AGGREGATE_SENSORS: tuple[AggregateSensorDescription, ...] = (
+    AggregateSensorDescription(
+        key="pool_count",
+        translation_key="pool_count",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: len(_pools(data)),
+    ),
+    AggregateSensorDescription(
+        key="overall_status",
+        translation_key="overall_status",
+        value_fn=_aggregate_status,
+    ),
+    AggregateSensorDescription(
+        key="degraded_pool_count",
+        translation_key="degraded_pool_count",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_degraded_pool_count,
+    ),
+    AggregateSensorDescription(
+        key="maintenance_pool_count",
+        translation_key="maintenance_pool_count",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_maintenance_pool_count,
+    ),
+    AggregateSensorDescription(
+        key="at_risk_disk_count",
+        translation_key="at_risk_disk_count",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_at_risk_disk_count,
+    ),
+    AggregateSensorDescription(
+        key="average_disk_temperature",
+        translation_key="average_disk_temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=_average_disk_temperature,
+    ),
+    AggregateSensorDescription(
+        key="cache_status",
+        translation_key="cache_status",
+        value_fn=_cache_status,
+    ),
+    AggregateSensorDescription(
+        key="ssd_wear",
+        translation_key="ssd_wear",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=_ssd_wear,
+    ),
+)
+
+POOL_SENSORS: tuple[PoolSensorDescription, ...] = (
+    PoolSensorDescription(
+        key="pool_status",
+        name="Status",
+        translation_key="pool_status",
+        value_fn=_pool_status,
+    ),
+    PoolSensorDescription(
+        key="pool_raid_level",
+        name="RAID Level",
+        translation_key="pool_raid_level",
+        value_fn=_pool_raid_level,
+    ),
+    PoolSensorDescription(
+        key="pool_drive_count",
+        name="Drive Count",
+        translation_key="pool_drive_count",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_pool_drive_count,
+    ),
+    PoolSensorDescription(
+        key="pool_rebuild_progress",
+        name="Rebuild Progress",
+        translation_key="pool_rebuild_progress",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        value_fn=_pool_rebuild_progress,
+    ),
+    PoolSensorDescription(
+        key="pool_sync_progress",
+        name="Sync Progress",
+        translation_key="pool_sync_progress",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        value_fn=_pool_sync_progress,
+    ),
+    PoolSensorDescription(
+        key="pool_at_risk_drive_count",
+        name="At-Risk Drive Count",
+        translation_key="pool_at_risk_drive_count",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_pool_at_risk_drive_count,
+    ),
+    PoolSensorDescription(
+        key="pool_average_drive_temperature",
+        name="Average Drive Temperature",
+        translation_key="pool_average_drive_temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        value_fn=_pool_average_drive_temperature,
+    ),
+)
+
+AGGREGATE_BINARY_SENSORS: tuple[AggregateBinarySensorDescription, ...] = (
+    AggregateBinarySensorDescription(
+        key="storage_problem",
+        translation_key="storage_problem",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        value_fn=lambda data: (
+            _aggregate_status(data) == "degraded" or (_at_risk_disk_count(data) > 0)
+        ),
+    ),
+    AggregateBinarySensorDescription(
+        key="maintenance_active",
+        translation_key="maintenance_active",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda data: any(_pool_in_maintenance(pool) for pool in _pools(data)),
+    ),
+)
+
+POOL_BINARY_SENSORS: tuple[PoolBinarySensorDescription, ...] = (
+    PoolBinarySensorDescription(
+        key="pool_problem",
+        name="Problem",
+        translation_key="pool_problem",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        value_fn=_pool_has_problem,
+    ),
+    PoolBinarySensorDescription(
+        key="pool_maintenance_active",
+        name="Maintenance Active",
+        translation_key="pool_maintenance_active",
+        value_fn=_pool_in_maintenance,
+    ),
+)

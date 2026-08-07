@@ -5,8 +5,13 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.const import PERCENTAGE, UnitOfInformation, UnitOfTemperature
+
+from .sensor_types import DriveSensorDescription
 from .storage_common import (
     DISK_PROBLEM_HINTS,
+    _bytes_to_gib,
     _dict_values,
     _first_number,
     _slug,
@@ -652,6 +657,70 @@ def _cache_drives(data: dict[str, Any] | None) -> list[dict[str, Any]]:
         if isinstance(value, list):
             return [item for item in value if isinstance(item, dict)]
     return []
+
+
+DRIVE_SENSORS: tuple[DriveSensorDescription, ...] = (
+    DriveSensorDescription(
+        key="drive_status",
+        name="Status",
+        translation_key="drive_status",
+        value_fn=_drive_health,
+    ),
+    DriveSensorDescription(
+        key="drive_temperature",
+        name="Temperature",
+        translation_key="drive_temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=_drive_temperature,
+    ),
+    DriveSensorDescription(
+        key="drive_power_on_hours",
+        name="Power-On Hours",
+        translation_key="drive_power_on_hours",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_drive_power_on_hours,
+    ),
+    DriveSensorDescription(
+        key="drive_life_span",
+        name="Remaining Life",
+        translation_key="drive_life_span",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_drive_life_span,
+    ),
+    DriveSensorDescription(
+        key="drive_model",
+        name="Model",
+        translation_key="drive_model",
+        value_fn=_drive_model,
+    ),
+    DriveSensorDescription(
+        key="drive_capacity",
+        name="Capacity",
+        translation_key="drive_capacity",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.GIBIBYTES,
+        suggested_display_precision=2,
+        value_fn=lambda drive: _bytes_to_gib(_drive_capacity(drive)),
+    ),
+    DriveSensorDescription(
+        key="drive_bad_sectors",
+        name="Bad Sectors",
+        translation_key="drive_bad_sectors",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_drive_bad_sectors,
+    ),
+    DriveSensorDescription(
+        key="drive_uncorrectable_sectors",
+        name="Uncorrectable Sectors",
+        translation_key="drive_uncorrectable_sectors",
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=_drive_uncorrectable_sectors,
+    ),
+)
 
 
 

@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .storage_common import _dict_values, _first_number, _sum_known
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.const import PERCENTAGE, UnitOfInformation
+
+from .sensor_types import AggregateSensorDescription, PoolSensorDescription
+from .storage_common import _bytes_to_gib, _dict_values, _first_number, _percentage, _sum_known
 from .storage_pools import _pools
 
 CAPACITY_KEYS = (
@@ -177,3 +181,88 @@ def _aggregate_available(data: dict[str, Any]) -> float | None:
     if capacity is None or usage is None:
         return None
     return max(0.0, capacity - usage)
+
+
+AGGREGATE_SENSORS: tuple[AggregateSensorDescription, ...] = (
+    AggregateSensorDescription(
+        key="total_storage",
+        translation_key="total_storage",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.GIBIBYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        value_fn=lambda data: _bytes_to_gib(_aggregate_capacity(data)),
+    ),
+    AggregateSensorDescription(
+        key="used_storage",
+        translation_key="used_storage",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.GIBIBYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        value_fn=lambda data: _bytes_to_gib(_aggregate_usage(data)),
+    ),
+    AggregateSensorDescription(
+        key="available_storage",
+        translation_key="available_storage",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.GIBIBYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        value_fn=lambda data: _bytes_to_gib(_aggregate_available(data)),
+    ),
+    AggregateSensorDescription(
+        key="usage_percent",
+        translation_key="usage_percent",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=lambda data: _percentage(_aggregate_usage(data), _aggregate_capacity(data)),
+    ),
+)
+
+POOL_SENSORS: tuple[PoolSensorDescription, ...] = (
+    PoolSensorDescription(
+        key="pool_capacity",
+        name="Capacity",
+        translation_key="pool_capacity",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.GIBIBYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        value_fn=lambda pool: _bytes_to_gib(_pool_capacity(pool)),
+    ),
+    PoolSensorDescription(
+        key="pool_used",
+        name="Used",
+        translation_key="pool_used",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.GIBIBYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        value_fn=lambda pool: _bytes_to_gib(_pool_usage(pool)),
+    ),
+    PoolSensorDescription(
+        key="pool_available",
+        name="Available",
+        translation_key="pool_available",
+        device_class=SensorDeviceClass.DATA_SIZE,
+        native_unit_of_measurement=UnitOfInformation.GIBIBYTES,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        entity_registry_enabled_default=False,
+        value_fn=lambda pool: _bytes_to_gib(_pool_available(pool)),
+    ),
+    PoolSensorDescription(
+        key="pool_usage_percent",
+        name="Usage",
+        translation_key="pool_usage_percent",
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        entity_registry_enabled_default=False,
+        value_fn=lambda pool: _percentage(_pool_usage(pool), _pool_capacity(pool)),
+    ),
+)

@@ -5,6 +5,9 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from homeassistant.components.sensor import SensorStateClass
+
+from .sensor_types import AggregateSensorDescription
 from .storage_common import _first_number, _text
 from .system_metadata import normalized_token as _normalized_token
 
@@ -286,3 +289,23 @@ def _throughput_from_disk_list(
     if not values_mb_s:
         return None
     return sum(values_mb_s)
+
+
+AGGREGATE_SENSORS: tuple[AggregateSensorDescription, ...] = (
+    AggregateSensorDescription(
+        key="read_throughput",
+        translation_key="read_throughput",
+        native_unit_of_measurement="MB/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        value_fn=_read_throughput_mb_s,
+    ),
+    AggregateSensorDescription(
+        key="write_throughput",
+        translation_key="write_throughput",
+        native_unit_of_measurement="MB/s",
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=2,
+        value_fn=_write_throughput_mb_s,
+    ),
+)

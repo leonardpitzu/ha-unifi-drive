@@ -6,12 +6,22 @@ from datetime import UTC, datetime
 from ipaddress import ip_address
 from typing import Any
 
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature
+
+from .sensor_types import AggregateSensorDescription
 from .storage_common import _dict_values, _first_number, _text
+from .system_metadata import (
+    drive_version as _drive_version,
+)
 from .system_metadata import (
     normalized_token as _normalized_token,
 )
 from .system_metadata import (
     system_payload as _system_payload,
+)
+from .system_metadata import (
+    unifi_os_version as _unifi_os_version,
 )
 
 NETWORK_ADDRESS_KEYS = (
@@ -344,3 +354,64 @@ def _scalar_text(value: Any) -> str | None:
     if isinstance(value, (dict, list, tuple, set)):
         return None
     return _text(value)
+
+
+AGGREGATE_SENSORS: tuple[AggregateSensorDescription, ...] = (
+    AggregateSensorDescription(
+        key="system_ip",
+        translation_key="system_ip",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_system_ip,
+    ),
+    AggregateSensorDescription(
+        key="system_uptime_readable",
+        translation_key="system_uptime_readable",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_system_uptime_readable,
+    ),
+    AggregateSensorDescription(
+        key="unifi_os_version",
+        translation_key="unifi_os_version",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_unifi_os_version,
+    ),
+    AggregateSensorDescription(
+        key="drive_version",
+        translation_key="drive_version",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_drive_version,
+    ),
+    AggregateSensorDescription(
+        key="cpu_temperature",
+        translation_key="cpu_temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=_cpu_temperature,
+    ),
+    AggregateSensorDescription(
+        key="cpu_percent",
+        translation_key="cpu_percent",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=_cpu_percent,
+    ),
+    AggregateSensorDescription(
+        key="memory_percent",
+        translation_key="memory_percent",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        native_unit_of_measurement=PERCENTAGE,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=1,
+        value_fn=_memory_percent,
+    ),
+    AggregateSensorDescription(
+        key="system_status",
+        translation_key="system_status",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=_system_status,
+    ),
+)
