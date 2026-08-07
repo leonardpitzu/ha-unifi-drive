@@ -2,7 +2,6 @@
 
 The implementation is split across:
 - sensor_descriptions.py
-- storage_helpers.py
 - entities.py
 """
 
@@ -25,10 +24,6 @@ from .sensor_descriptions import (
     DriveSensorDescription,
     PoolSensorDescription,
 )
-
-# Keeps every storage helper reachable as `sensor.<helper>`.
-# storage_helpers.__all__ is the single source of truth for that list.
-from .storage_helpers import *  # noqa: F403
 
 PARALLEL_UPDATES = 0
 

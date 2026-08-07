@@ -32,21 +32,23 @@ from .snapshot_inventory import (
     SNAPSHOT_INVENTORY_STATUS_FALLBACK,
     SNAPSHOT_INVENTORY_STATUS_OK,
 )
-from .storage_helpers import (
+from .storage_drives import (
     _cache_drives,
     _drive_attributes,
     _drive_key,
     _drive_name,
     _legacy_drive_index,
-    _normalized_token,
     _pool_drives,
+    _raw_drive_health,
+)
+from .storage_pools import (
     _pool_from_key,
     _pool_key,
     _pool_name,
     _pools,
-    _raw_drive_health,
     _raw_pool_status,
 )
+from .system_metadata import normalized_token as _normalized_token
 
 CACHE_GROUP_KEY = "cache"
 CACHE_GROUP_NAME = "Cache"

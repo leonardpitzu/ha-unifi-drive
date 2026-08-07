@@ -5,6 +5,7 @@ import sys
 import types
 from dataclasses import dataclass
 from enum import StrEnum
+from importlib import import_module
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 
@@ -167,7 +168,30 @@ def _load_sensor_module():
     sensor_module = module_from_spec(sensor_spec)
     sys.modules["custom_components.unifi_unas.sensor"] = sensor_module
     sensor_spec.loader.exec_module(sensor_module)
+    _attach_storage_helpers(sensor_module)
     return sensor_module
+
+
+def _attach_storage_helpers(sensor_module) -> None:
+    """Expose every storage helper as `sensor_module.<helper>`.
+
+    The helpers live in the `storage_*` module that owns the data. Flattening
+    them here keeps that a test convenience instead of an extra re-export layer
+    in the integration.
+    """
+    for module_name in (
+        "storage_capacity",
+        "storage_common",
+        "storage_drives",
+        "storage_pools",
+        "storage_system",
+        "storage_throughput",
+        "system_metadata",
+    ):
+        module = import_module(f"custom_components.unifi_unas.{module_name}")
+        for name, value in vars(module).items():
+            if name.startswith("_") and not name.startswith("__"):
+                setattr(sensor_module, name, value)
 
 
 sensor_module = _load_sensor_module()
