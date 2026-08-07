@@ -16,9 +16,6 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Legacy compatibility module that intentionally re-exports imported names.
-"custom_components/unifi_unas/api_snapshot.py" = ["F401"]
-
 # Platform imports happen after Home Assistant setup imports so HA does not
 # first import platform modules while setting up the config entry.
 "custom_components/unifi_unas/__init__.py" = ["E402", "F401"]

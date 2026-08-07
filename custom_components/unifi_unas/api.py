@@ -9,13 +9,6 @@ from aiohttp import ClientSession
 
 from .api_auth import ApiAuthMixin
 from .api_backup import ApiBackupMixin
-from .api_errors import (
-    CannotConnect,
-    InvalidAuth,
-    UnexpectedResponse,
-    UnifiUnasApiError,
-    UnsupportedFeature,
-)
 from .api_fan import ApiFanMixin
 from .api_snapshot import ApiSnapshotMixin
 from .api_storage import ApiStorageMixin
@@ -26,11 +19,6 @@ from .url_helpers import build_console_url, format_host_for_url
 
 __all__ = [
     "UnifiUnasApiClient",
-    "CannotConnect",
-    "InvalidAuth",
-    "UnexpectedResponse",
-    "UnifiUnasApiError",
-    "UnsupportedFeature",
 ]
 
 

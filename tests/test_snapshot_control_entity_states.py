@@ -389,7 +389,7 @@ async def test_snapshot_control_services_update_client_and_refresh_states(hass) 
 @pytest.mark.asyncio
 async def test_snapshot_create_button_reports_api_failures(hass) -> None:
     """Snapshot create failures should surface translatable HA errors."""
-    from custom_components.unifi_unas.api import (
+    from custom_components.unifi_unas.api_errors import (
         CannotConnect,
         InvalidAuth,
         UnsupportedFeature,
@@ -432,7 +432,7 @@ async def test_snapshot_create_button_reports_api_failures(hass) -> None:
 @pytest.mark.asyncio
 async def test_snapshot_setting_controls_report_api_failures(hass) -> None:
     """Snapshot setting writes should surface actionable translated failures."""
-    from custom_components.unifi_unas.api import (
+    from custom_components.unifi_unas.api_errors import (
         CannotConnect,
         InvalidAuth,
         UnsupportedFeature,

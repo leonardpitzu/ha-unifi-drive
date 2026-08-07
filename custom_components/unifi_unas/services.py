@@ -10,7 +10,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
-from .api import CannotConnect, InvalidAuth, UnexpectedResponse, UnsupportedFeature
+from .api_errors import CannotConnect, InvalidAuth, UnexpectedResponse, UnsupportedFeature
 from .const import (
     ATTR_DESCRIPTION,
     ATTR_ENTRY_ID,

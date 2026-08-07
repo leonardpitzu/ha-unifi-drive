@@ -9,10 +9,22 @@ def _load_api_client_class():
         "custom_components.unifi_unas.api_snapshot",
         fromlist=["ApiSnapshotMixin"],
     )
-    return api_module.UnifiUnasApiClient, api_snapshot_module
+    snapshot_schedule_module = __import__(
+        "custom_components.unifi_unas.snapshot_schedule",
+        fromlist=["_snapshot_schedule_days"],
+    )
+    return (
+        api_module.UnifiUnasApiClient,
+        api_snapshot_module,
+        snapshot_schedule_module,
+    )
 
 
-UnifiUnasApiClient, api_snapshot_module = _load_api_client_class()
+(
+    UnifiUnasApiClient,
+    api_snapshot_module,
+    snapshot_schedule_module,
+) = _load_api_client_class()
 
 
 class SnapshotWriteClient(api_snapshot_module.ApiSnapshotMixin):

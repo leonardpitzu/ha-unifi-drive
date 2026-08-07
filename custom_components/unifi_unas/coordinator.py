@@ -13,11 +13,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import (
+from .api import UnifiUnasApiClient
+from .api_errors import (
     CannotConnect,
     InvalidAuth,
     UnexpectedResponse,
-    UnifiUnasApiClient,
     UnsupportedFeature,
 )
 from .const import (

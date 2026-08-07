@@ -13,7 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import CannotConnect, InvalidAuth, UnexpectedResponse, UnsupportedFeature
+from .api_errors import CannotConnect, InvalidAuth, UnexpectedResponse, UnsupportedFeature
 from .const import (
     CONF_FAN_CONTROL_ENABLED,
     DEFAULT_FAN_CONTROL_ENABLED,

@@ -9,6 +9,7 @@ from tests.api_client_stubs import (
     SnapshotWriteClient,
     UnifiUnasApiClient,
     api_snapshot_module,
+    snapshot_schedule_module,
 )
 
 
@@ -123,39 +124,45 @@ def test_extract_snapshot_settings_from_section_payload() -> None:
 
 def test_snapshot_schedule_helpers_cover_unknown_and_disabled_values() -> None:
     """Schedule helpers should preserve unknown API values and disabled states."""
-    assert api_snapshot_module._snapshot_schedule_api_value("custom") == "custom"
-    assert api_snapshot_module._snapshot_schedule_option("daily") == "Daily"
-    assert api_snapshot_module._snapshot_schedule_option("custom") == "custom"
-    assert api_snapshot_module._snapshot_schedule_option(None) is None
+    assert snapshot_schedule_module._snapshot_schedule_api_value("custom") == "custom"
+    assert snapshot_schedule_module._snapshot_schedule_option("daily") == "Daily"
+    assert snapshot_schedule_module._snapshot_schedule_option("custom") == "custom"
+    assert snapshot_schedule_module._snapshot_schedule_option(None) is None
 
-    assert api_snapshot_module._snapshot_schedule_frequency({}, False) == "Never"
+    assert snapshot_schedule_module._snapshot_schedule_frequency({}, False) == "Never"
     assert (
-        api_snapshot_module._snapshot_schedule_frequency(
+        snapshot_schedule_module._snapshot_schedule_frequency(
             {"frequency": "weekly"},
             True,
         )
         == "Weekly"
     )
-    assert api_snapshot_module._snapshot_schedule_frequency({"interval": 60}, None) == "Daily"
-    assert api_snapshot_module._snapshot_schedule_frequency({}, None) == "Never"
+    assert (
+        snapshot_schedule_module._snapshot_schedule_frequency({"interval": 60}, None)
+        == "Daily"
+    )
+    assert snapshot_schedule_module._snapshot_schedule_frequency({}, None) == "Never"
 
 
 def test_snapshot_schedule_days_rejects_invalid_user_values() -> None:
     """Schedule write helpers should reject invalid day selector values."""
     assert (
-        api_snapshot_module._snapshot_schedule_days("1, 2, 2", minimum=1, maximum=31)
+        snapshot_schedule_module._snapshot_schedule_days("1, 2, 2", minimum=1, maximum=31)
         == "1,2"
     )
-    assert api_snapshot_module._snapshot_schedule_days(None, minimum=1, maximum=31) is None
+    assert (
+        snapshot_schedule_module._snapshot_schedule_days(None, minimum=1, maximum=31)
+        is None
+    )
 
     with pytest.raises(ValueError, match="between 1 and 31"):
-        api_snapshot_module._snapshot_schedule_days("0", minimum=1, maximum=31)
+        snapshot_schedule_module._snapshot_schedule_days("0", minimum=1, maximum=31)
 
     with pytest.raises(ValueError, match="between 1 and 31"):
-        api_snapshot_module._snapshot_schedule_days("bad", minimum=1, maximum=31)
+        snapshot_schedule_module._snapshot_schedule_days("bad", minimum=1, maximum=31)
 
     with pytest.raises(ValueError, match="between 1 and 31"):
-        api_snapshot_module._snapshot_schedule_days("", minimum=1, maximum=31)
+        snapshot_schedule_module._snapshot_schedule_days("", minimum=1, maximum=31)
 
 
 def test_extract_snapshot_settings_from_list_payload() -> None:
@@ -403,7 +410,7 @@ def test_snapshot_schedule_time_parts_accepts_payload_variants(
     expected: tuple[int, int],
 ) -> None:
     """A small matrix should accept common schedule time payload strings."""
-    assert api_snapshot_module._schedule_time_parts(raw) == expected
+    assert snapshot_schedule_module._schedule_time_parts(raw) == expected
 
 
 @pytest.mark.parametrize(
@@ -413,7 +420,7 @@ def test_snapshot_schedule_time_parts_accepts_payload_variants(
 def test_snapshot_schedule_time_parts_rejects_invalid_payload_variants(raw: str) -> None:
     """Invalid or truncated schedule strings should fail fast."""
     try:
-        api_snapshot_module._schedule_time_parts(raw)
+        snapshot_schedule_module._schedule_time_parts(raw)
     except ValueError:
         return
     raise AssertionError(f"invalid schedule time should raise ValueError: {raw!r}")
@@ -435,7 +442,7 @@ def test_snapshot_first_schedule_day_returns_first_valid_value(
 ) -> None:
     """Day selectors should share the same sanitized first-day parser."""
     assert (
-        api_snapshot_module._snapshot_first_schedule_day(
+        snapshot_schedule_module._snapshot_first_schedule_day(
             raw,
             minimum=minimum,
             maximum=maximum,
@@ -609,7 +616,7 @@ def test_snapshot_schedule_time_payload_matrix(
     expected: str | None,
 ) -> None:
     """Normalize varying API schedule payload shapes into HH:MM or None."""
-    assert api_snapshot_module._snapshot_schedule_time(schedule) == expected
+    assert snapshot_schedule_module._snapshot_schedule_time(schedule) == expected
 
 
 def test_snapshot_settings_delete_only_when_turning_off_without_other_changes() -> None:

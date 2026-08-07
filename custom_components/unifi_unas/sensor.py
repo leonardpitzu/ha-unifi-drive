@@ -1,8 +1,7 @@
-"""Compatibility entrypoint for UniFi Drive sensor platform.
+"""Sensor platform entrypoint for the UniFi Drive integration.
 
-The implementation is split across:
-- sensor_descriptions.py
-- entities.py
+Home Assistant loads the platform from here; the entity classes live in
+entities.py and the description tables are assembled in sensor_descriptions.py.
 """
 
 from __future__ import annotations

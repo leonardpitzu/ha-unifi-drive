@@ -18,11 +18,11 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import (
+from .api import UnifiUnasApiClient
+from .api_errors import (
     CannotConnect,
     InvalidAuth,
     UnexpectedResponse,
-    UnifiUnasApiClient,
     UnsupportedFeature,
 )
 from .coordinator import UnifiUnasCoordinator

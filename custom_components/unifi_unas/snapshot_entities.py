@@ -11,7 +11,7 @@ from homeassistant.const import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import CannotConnect, InvalidAuth, UnexpectedResponse, UnsupportedFeature
+from .api_errors import CannotConnect, InvalidAuth, UnexpectedResponse, UnsupportedFeature
 from .const import (
     CONF_SNAPSHOT_BUTTONS_ENABLED,
     DEFAULT_SNAPSHOT_BUTTONS_ENABLED,

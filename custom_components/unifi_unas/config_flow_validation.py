@@ -19,7 +19,8 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
-from .api import CannotConnect, InvalidAuth, UnexpectedResponse, UnifiUnasApiClient
+from .api import UnifiUnasApiClient
+from .api_errors import CannotConnect, InvalidAuth, UnexpectedResponse
 from .config_flow_identity import _entry_info
 from .const import CONF_WOL_MAC_ADDRESS
 from .discovery import feature_defaults_from_system_payload

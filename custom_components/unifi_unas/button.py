@@ -13,7 +13,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .api import CannotConnect, InvalidAuth, UnexpectedResponse, UnsupportedFeature
+from .api_errors import CannotConnect, InvalidAuth, UnexpectedResponse, UnsupportedFeature
 from .const import (
     CONF_WOL_BROADCAST_ADDRESS,
     CONF_WOL_ENABLED,
