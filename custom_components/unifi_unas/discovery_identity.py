@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from ipaddress import ip_address
-from typing import Any, Mapping
+from typing import Any
 
 from homeassistant.const import CONF_HOST
 
 from .const import (
     CONF_DISCOVERY_CONFIDENCE,
+    CONF_DISCOVERY_HOST_ALIASES,
     CONF_DISCOVERY_IDENTITY_CONFLICTS,
     CONF_DISCOVERY_IDENTITY_SOURCE,
-    CONF_DISCOVERY_HOST_ALIASES,
     CONF_DISCOVERY_LAST_SEEN,
     CONF_DISCOVERY_MAC_ADDRESS,
     CONF_WOL_MAC_ADDRESS,
@@ -126,7 +127,7 @@ def discovery_flow_context_from_device(device: Any) -> dict[str, Any]:
 
 def entry_matches_discovery_flow_context(
     entry: Any,
-    context: dict[str, Any],
+    context: Mapping[str, Any],
 ) -> bool:
     """Return whether an existing entry matches a pending discovery flow."""
     if (

@@ -6,6 +6,7 @@ import asyncio
 import logging
 import sys
 import types
+from typing import Any
 
 from tests.module_stubs import (
     install_homeassistant_const_stub,
@@ -178,6 +179,8 @@ class _FakeLegacyAliasCacheInventoryClient(_FakeTypedInventoryClient):
 
 
 class _FakePollingInventoryClient:
+    fan_mode_read_supported = None
+    backup_tasks_read_supported = None
     snapshot_settings_read_supported = True
     snapshot_inventory_supported_by_type: dict[str, bool] = {}
 
@@ -185,7 +188,7 @@ class _FakePollingInventoryClient:
         self.inventory_calls: list[str] = []
         self.snapshot_settings = [{"id": "shared-1", "type": "shared"}]
 
-    async def async_get_storage(self) -> dict:
+    async def async_get_storage(self, **_kwargs: Any) -> dict:
         return {"_system": {"status": "online"}}
 
     async def async_get_backup_tasks(self) -> list:
@@ -243,7 +246,7 @@ class _FakeTransientStorageClient(_FakePollingInventoryClient):
         super().__init__()
         self.storage_failures_remaining = 0
 
-    async def async_get_storage(self) -> dict:
+    async def async_get_storage(self, **_kwargs: Any) -> dict:
         if self.storage_failures_remaining > 0:
             self.storage_failures_remaining -= 1
             raise coordinator_module.CannotConnect("startup api not ready")
@@ -251,12 +254,12 @@ class _FakeTransientStorageClient(_FakePollingInventoryClient):
 
 
 class _FakeAuthFailureClient(_FakePollingInventoryClient):
-    async def async_get_storage(self) -> dict:
+    async def async_get_storage(self, **_kwargs: Any) -> dict:
         raise coordinator_module.InvalidAuth("bad credentials")
 
 
 class _FakeUnexpectedStorageClient(_FakePollingInventoryClient):
-    async def async_get_storage(self) -> dict:
+    async def async_get_storage(self, **_kwargs: Any) -> dict:
         raise coordinator_module.UnexpectedResponse("bad payload")
 
 
@@ -842,9 +845,11 @@ def test_snapshot_settings_connection_failures_do_not_create_repairs() -> None:
     cleared_calls: list[bool] = []
 
     class _FailingSnapshotSettingsClient:
+        fan_mode_read_supported = None
+        backup_tasks_read_supported = None
         snapshot_settings_read_supported = False
 
-        async def async_get_storage(self) -> dict[str, dict[str, str]]:
+        async def async_get_storage(self, **_kwargs: Any) -> dict[str, dict[str, str]]:
             return {"_system": {"status": "online"}}
 
         async def async_get_backup_tasks(self) -> list:
@@ -894,9 +899,11 @@ def test_snapshot_settings_unsupported_failures_keep_snapshot_read_issue() -> No
     cleared_calls: list[bool] = []
 
     class _UnsupportedSnapshotSettingsClient:
+        fan_mode_read_supported = None
+        backup_tasks_read_supported = None
         snapshot_settings_read_supported = False
 
-        async def async_get_storage(self) -> dict[str, dict[str, str]]:
+        async def async_get_storage(self, **_kwargs: Any) -> dict[str, dict[str, str]]:
             return {"_system": {"status": "online"}}
 
         async def async_get_backup_tasks(self) -> list:
@@ -935,3 +942,55 @@ def test_snapshot_settings_unsupported_failures_keep_snapshot_read_issue() -> No
         coordinator_module.async_create_snapshot_read_issue = original_create_issue
         coordinator_module.async_update_snapshot_read_issue = original_update_issue
         coordinator_module.async_clear_snapshot_issues = original_clear_issues
+
+
+class _FakeTieredClient(_FakePollingInventoryClient):
+    """Records which polls asked for the slow-changing endpoints."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.refresh_system_calls: list[bool] = []
+        self.backup_calls = 0
+
+    async def async_get_storage(self, **kwargs: Any) -> dict:
+        self.refresh_system_calls.append(bool(kwargs.get("refresh_system", True)))
+        return {"_system": {"status": "online"}}
+
+    async def async_get_backup_tasks(self) -> list:
+        self.backup_calls += 1
+        return []
+
+
+def test_slow_endpoints_are_skipped_between_polls() -> None:
+    """Slow-changing endpoints should not be polled on every core refresh."""
+    client = _FakeTieredClient()
+    coordinator = coordinator_module.UnifiUnasCoordinator(
+        types.SimpleNamespace(),
+        client,
+        _FakeSnapshotPollingEntry(),
+    )
+
+    asyncio.run(coordinator._async_update_data())
+    asyncio.run(coordinator._async_update_data())
+    asyncio.run(coordinator._async_update_data())
+
+    assert client.refresh_system_calls == [True, False, False]
+    assert client.backup_calls == 1
+
+
+def test_requested_refresh_restores_the_slow_tier() -> None:
+    """A user-initiated refresh should re-read the slow-changing endpoints."""
+    client = _FakeTieredClient()
+    coordinator = coordinator_module.UnifiUnasCoordinator(
+        types.SimpleNamespace(),
+        client,
+        _FakeSnapshotPollingEntry(),
+    )
+
+    asyncio.run(coordinator._async_update_data())
+    asyncio.run(coordinator._async_update_data())
+    coordinator.request_slow_refresh()
+    asyncio.run(coordinator._async_update_data())
+
+    assert client.refresh_system_calls == [True, False, True]
+    assert client.backup_calls == 2

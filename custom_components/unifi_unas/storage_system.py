@@ -9,6 +9,8 @@ from typing import Any
 from .storage_common import _dict_values, _first_number, _text
 from .system_metadata import (
     normalized_token as _normalized_token,
+)
+from .system_metadata import (
     system_payload as _system_payload,
 )
 
@@ -213,6 +215,7 @@ def _memory_percent(data: dict[str, Any]) -> float | None:
     available = _first_number(
         memory, ("available", "availableBytes", "available_bytes")
     )
+    used: float | None
     if available is not None:
         used = total - available
     else:
@@ -221,8 +224,8 @@ def _memory_percent(data: dict[str, Any]) -> float | None:
             used = total - free
         else:
             used = _first_number(memory, ("used", "usedBytes", "used_bytes"))
-            if used is None:
-                return None
+    if used is None:
+        return None
 
     return round(max(0.0, min(100.0, used / total * 100)), 1)
 

@@ -2,11 +2,11 @@
 
 import asyncio
 import json
-from types import MappingProxyType
-from pathlib import Path
-from typing import Any
 import sys
 import types
+from pathlib import Path
+from types import MappingProxyType
+from typing import Any
 
 import pytest
 
@@ -17,7 +17,6 @@ from tests.module_stubs import (
     load_const_module,
     load_integration_module,
 )
-
 
 _UTF8_BOM = b"\xef\xbb\xbf"
 

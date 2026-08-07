@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
@@ -118,6 +118,8 @@ def _storage_payload() -> dict[str, Any]:
 class _ControlIntegrationClient:
     """Fake API client for HA-state tests of remaining control platforms."""
 
+    fan_mode_read_supported = None
+    backup_tasks_read_supported = None
     base_url = "https://unas.local"
     native_fan_mode = "Balance"
     poweroff_permission_hint = None
@@ -137,7 +139,7 @@ class _ControlIntegrationClient:
             self.fail_next = None
             raise err
 
-    async def async_get_storage(self) -> dict[str, Any]:
+    async def async_get_storage(self, **_kwargs: Any) -> dict[str, Any]:
         return _storage_payload()
 
     async def async_get_fan_mode(self) -> str:

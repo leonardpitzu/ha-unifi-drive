@@ -7,7 +7,6 @@ from json import JSONDecodeError
 from typing import Any
 
 import pytest
-from tests.api_client_stubs import UnifiUnasApiClient
 
 from custom_components.unifi_unas import api_transport as api_transport_module
 from custom_components.unifi_unas.api import (
@@ -22,6 +21,7 @@ from custom_components.unifi_unas.const import (
     POWEROFF_PATH,
     REBOOT_PATH,
 )
+from tests.api_client_stubs import UnifiUnasApiClient
 
 
 class _Headers(dict):
@@ -56,7 +56,7 @@ class _Response:
         self._json_error = json_error
         self.read_called = False
 
-    async def __aenter__(self) -> "_Response":
+    async def __aenter__(self) -> _Response:
         return self
 
     async def __aexit__(self, *_exc: object) -> None:
@@ -329,13 +329,19 @@ def test_storage_read_retries_auth_and_keeps_system_metadata() -> None:
     assert data["_network_io"] == {"receiveKBPS": 2.5, "transmitKBPS": 1.5}
     assert client._system_info == data["_system"]
     assert client.native_fan_mode == "Cooling"
-    assert calls == [
+    # The two storage reads stay ordered (auth retry); the metadata endpoints
+    # are fetched concurrently, so only their presence is guaranteed.
+    assert calls[:2] == [
         ("GET", "/proxy/drive/api/v2/storage"),
         ("GET", "/proxy/drive/api/v2/storage"),
-        ("GET", "/api/system"),
-        ("GET", NETWORK_IO_PATH),
-        ("GET", "/proxy/drive/api/v2/systems/device-info"),
     ]
+    assert sorted(calls[2:]) == sorted(
+        [
+            ("GET", "/api/system"),
+            ("GET", NETWORK_IO_PATH),
+            ("GET", "/proxy/drive/api/v2/systems/device-info"),
+        ]
+    )
 
 
 def test_storage_read_tolerates_missing_system_metadata() -> None:

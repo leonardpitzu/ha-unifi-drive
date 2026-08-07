@@ -1,7 +1,0 @@
-[run]
-source = custom_components/unifi_unas
-
-[report]
-fail_under = 95
-show_missing = true
-skip_covered = true

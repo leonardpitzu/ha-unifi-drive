@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import sys
 from copy import deepcopy
 from pathlib import Path
-import sys
 from typing import Any
 from unittest.mock import patch
 
@@ -128,6 +128,8 @@ def _storage_payload(
 class _MonitoringClient:
     """Fake API client for HA-state tests of core monitoring entities."""
 
+    fan_mode_read_supported = None
+    backup_tasks_read_supported = None
     base_url = "https://unas.local"
     native_fan_mode = None
     poweroff_permission_hint = None
@@ -137,7 +139,7 @@ class _MonitoringClient:
         self.storage = _storage_payload()
         self.offline = False
 
-    async def async_get_storage(self) -> dict[str, Any]:
+    async def async_get_storage(self, **_kwargs: Any) -> dict[str, Any]:
         """Return storage or simulate an offline device."""
         if self.offline:
             from custom_components.unifi_unas.coordinator import CannotConnect

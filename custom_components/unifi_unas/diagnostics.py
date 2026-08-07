@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 import json
-from pathlib import Path
 import re
+from collections.abc import Mapping
+from pathlib import Path
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
@@ -13,19 +13,19 @@ from homeassistant.const import CONF_API_KEY, CONF_HOST, CONF_PASSWORD, CONF_USE
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    CONF_DISCOVERY_HOST_ALIASES,
     CONF_DISCOVERY_CONFIDENCE,
     CONF_DISCOVERY_DEBUG,
+    CONF_DISCOVERY_HOST_ALIASES,
     CONF_DISCOVERY_IDENTITY_SOURCE,
     CONF_DISCOVERY_LAST_SEEN,
     CONF_DISCOVERY_MAC_ADDRESS,
+    CONF_WOL_BROADCAST_ADDRESS,
     CONF_WOL_MAC_ADDRESS,
     DEFAULT_DISCOVERY_DEBUG,
     DEFAULT_NAME,
     DOMAIN,
     PLATFORMS,
 )
-from .const import CONF_WOL_BROADCAST_ADDRESS
 from .coordinator import UnifiUnasCoordinator
 from .discovery_identity import (
     discovery_confidence_score,
@@ -44,6 +44,7 @@ from .storage_capacity import (
     _aggregate_capacity,
     _aggregate_usage,
 )
+from .storage_drives import _pool_drives
 from .storage_pools import (
     _aggregate_status,
     _at_risk_disk_count,
@@ -51,7 +52,6 @@ from .storage_pools import (
     _maintenance_pool_count,
     _pools,
 )
-from .storage_drives import _pool_drives
 from .storage_system import _system_status
 from .storage_throughput import (
     _read_throughput_mb_s,

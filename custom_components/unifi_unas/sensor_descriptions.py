@@ -39,12 +39,13 @@ from .storage_helpers import (
     _drive_power_on_hours,
     _drive_temperature,
     _drive_uncorrectable_sectors,
+    _drive_version,
     _maintenance_pool_count,
     _memory_percent,
     _percentage,
     _pool_at_risk_drive_count,
-    _pool_average_drive_temperature,
     _pool_available,
+    _pool_average_drive_temperature,
     _pool_capacity,
     _pool_drive_count,
     _pool_raid_level,
@@ -59,20 +60,19 @@ from .storage_helpers import (
     _system_status,
     _system_uptime_readable,
     _unifi_os_version,
-    _drive_version,
     _write_throughput_mb_s,
 )
 
 
 @dataclass(frozen=True, kw_only=True)
-class AggregateSensorDescription(SensorEntityDescription):  # type: ignore[misc]
+class AggregateSensorDescription(SensorEntityDescription):
     """Description of an aggregate UNAS sensor."""
 
     value_fn: Callable[[dict[str, Any]], StateType]
 
 
 @dataclass(frozen=True, kw_only=True)
-class PoolSensorDescription(SensorEntityDescription):  # type: ignore[misc]
+class PoolSensorDescription(SensorEntityDescription):
     """Description of a per-pool UNAS sensor."""
 
     value_fn: Callable[[dict[str, Any]], StateType]
@@ -352,7 +352,7 @@ POOL_SENSOR_TYPES: tuple[PoolSensorDescription, ...] = (
 
 
 @dataclass(frozen=True, kw_only=True)
-class DriveSensorDescription(SensorEntityDescription):  # type: ignore[misc]
+class DriveSensorDescription(SensorEntityDescription):
     """Description of a per-drive UNAS sensor."""
 
     value_fn: Callable[[dict[str, Any]], StateType]

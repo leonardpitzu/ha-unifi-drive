@@ -158,7 +158,7 @@ class UnifiUnasBaseSensor(
     UnifiUnasDeviceInfoMixin,
     CoordinatorEntity[UnifiUnasCoordinator],
     SensorEntity,
-):  # type: ignore[misc]
+):
     """Common base for UniFi Drive sensors."""
 
     _attr_has_entity_name = True
@@ -382,7 +382,7 @@ class UnifiUnasCacheDriveSensor(UnifiUnasDriveSensor):
 class UnifiUnasSnapshotInventorySensor(
     UnifiUnasSnapshotTargetEntity,
     SensorEntity,
-):  # type: ignore[misc]
+):
     """Read-only snapshot count sensor for one snapshot target."""
 
     _attr_entity_category = EntityCategory.DIAGNOSTIC

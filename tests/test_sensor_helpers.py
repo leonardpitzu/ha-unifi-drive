@@ -1,12 +1,12 @@
 """Unit tests for sensor helper mapping logic."""
 
 import asyncio
-from dataclasses import dataclass
-from enum import Enum
-from importlib.util import module_from_spec, spec_from_file_location
-from pathlib import Path
 import sys
 import types
+from dataclasses import dataclass
+from enum import StrEnum
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 
 
 def _load_sensor_module():
@@ -66,7 +66,7 @@ def _load_sensor_module():
     const_pkg = types.ModuleType("homeassistant.const")
     const_pkg.PERCENTAGE = "%"
 
-    class Platform(str, Enum):
+    class Platform(StrEnum):
         BINARY_SENSOR = "binary_sensor"
         BUTTON = "button"
         NUMBER = "number"

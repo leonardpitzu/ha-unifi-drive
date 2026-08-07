@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from enum import Enum
-from importlib.util import module_from_spec, spec_from_file_location
 import json
-from pathlib import Path
 import sys
 import types
+from enum import StrEnum
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 
 _CREATED: list[dict] = []
 _DELETED: list[tuple[str, str]] = []
@@ -38,7 +38,7 @@ def _load_snapshot_repairs_module():
 
     const_pkg = types.ModuleType("homeassistant.const")
 
-    class Platform(str, Enum):
+    class Platform(StrEnum):
         BINARY_SENSOR = "binary_sensor"
         BUTTON = "button"
         NUMBER = "number"

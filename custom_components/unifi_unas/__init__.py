@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-import logging
 from typing import cast
 
 import aiohttp
-
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_HOST,
@@ -22,13 +21,26 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError, ConfigEntryNotReady
 from homeassistant.helpers import (
     config_validation as cv,
+)
+from homeassistant.helpers import (
     device_registry as dr,
+)
+from homeassistant.helpers import (
     entity_registry as er,
 )
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.event import async_call_later
-from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers.typing import UNDEFINED, ConfigType
 
+# Import platform modules at module import time so Home Assistant does not need
+# to import them for the first time during config-entry setup.
+from . import binary_sensor as _binary_sensor
+from . import button as _button
+from . import number as _number
+from . import select as _select
+from . import sensor as _sensor
+from . import switch as _switch
+from . import time as _time
 from .api import UnifiUnasApiClient
 from .const import (
     CONF_DISCOVERY_CONFIDENCE,
@@ -45,6 +57,7 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import UnifiUnasCoordinator
+from .device import build_device_info
 from .discovery import feature_defaults_from_system_payload
 from .discovery_identity import (
     apply_discovery_identity_defaults,
@@ -52,7 +65,6 @@ from .discovery_identity import (
     entry_matches_discovery_flow_context,
     should_write_discovery_identity_update,
 )
-from .device import build_device_info
 from .entry_options import (
     entry_bool,
     entry_value,
@@ -65,16 +77,6 @@ from .snapshot_types import (
     snapshot_target_key,
     snapshot_target_slug,
 )
-
-# Import platform modules at module import time so Home Assistant does not need
-# to import them for the first time during config-entry setup.
-from . import binary_sensor as _binary_sensor
-from . import button as _button
-from . import number as _number
-from . import select as _select
-from . import sensor as _sensor
-from . import switch as _switch
-from . import time as _time
 
 _LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -195,7 +197,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: UnifiDriveConfigEntry) 
         if coordinator is not None:
             _clear_snapshot_target_entities_for_coordinator(coordinator)
         _async_clear_entry_runtime(hass, entry)
-    return cast(bool, unload_ok)
+    return unload_ok
 
 
 async def async_remove_config_entry_device(
@@ -212,7 +214,9 @@ async def async_remove_config_entry_device(
 
 def _async_clear_entry_runtime(hass: HomeAssistant, entry: UnifiDriveConfigEntry) -> None:
     """Remove config-entry runtime mirrors after unload or setup failure."""
-    entry.runtime_data = None
+    # ConfigEntry's generic cannot express "cleared", but dropping the stale
+    # coordinator matters more than the annotation.
+    entry.runtime_data = None  # type: ignore[assignment]
     hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
 
 
@@ -365,7 +369,7 @@ def _async_track_device_registry_metadata_updates(
         _async_sync_device_registry_metadata(hass, entry, coordinator)
 
     _sync_metadata()
-    return cast(Callable[[], None], coordinator.async_add_listener(_sync_metadata))
+    return coordinator.async_add_listener(_sync_metadata)
 
 
 def _async_sync_device_registry_metadata(
@@ -383,16 +387,28 @@ def _async_sync_device_registry_metadata(
         return False
 
     device_info = build_device_info(coordinator, entry, device_identifier)
-    updates: dict[str, object] = {}
-    for key in ("manufacturer", "model", "sw_version", "configuration_url"):
-        value = device_info.get(key)
-        if value and getattr(device_entry, key) != value:
-            updates[key] = value
+    candidates: tuple[tuple[str, object], ...] = (
+        ("manufacturer", device_info.get("manufacturer")),
+        ("model", device_info.get("model")),
+        ("sw_version", device_info.get("sw_version")),
+        ("configuration_url", device_info.get("configuration_url")),
+    )
+    changes: dict[str, str] = {
+        key: str(value)
+        for key, value in candidates
+        if value and getattr(device_entry, key) != value
+    }
 
-    if not updates:
+    if not changes:
         return False
 
-    device_registry.async_update_device(device_entry.id, **updates)
+    device_registry.async_update_device(
+        device_entry.id,
+        manufacturer=changes.get("manufacturer", UNDEFINED),
+        model=changes.get("model", UNDEFINED),
+        sw_version=changes.get("sw_version", UNDEFINED),
+        configuration_url=changes.get("configuration_url", UNDEFINED),
+    )
     return True
 
 

@@ -3,11 +3,11 @@
 import asyncio
 
 import pytest
-
-from tests.api_client_stubs import UnifiUnasApiClient
 from aiohttp import ClientError
+
 from custom_components.unifi_unas.api import CannotConnect
 from custom_components.unifi_unas.security import safe_error_text
+from tests.api_client_stubs import UnifiUnasApiClient
 
 
 def test_normalize_fan_mode_variants() -> None:

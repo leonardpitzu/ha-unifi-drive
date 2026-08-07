@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from enum import Enum
-from importlib.util import module_from_spec, spec_from_file_location
-from pathlib import Path
 import sys
 import types
+from enum import StrEnum
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = ROOT / "custom_components" / "unifi_unas"
 
 
-class Platform(str, Enum):
+class Platform(StrEnum):
     """Minimal Home Assistant Platform enum stub."""
 
     BINARY_SENSOR = "binary_sensor"

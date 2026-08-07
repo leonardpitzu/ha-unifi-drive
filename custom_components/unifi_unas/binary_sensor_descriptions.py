@@ -22,14 +22,14 @@ from .storage_helpers import (
 
 
 @dataclass(frozen=True, kw_only=True)
-class AggregateBinarySensorDescription(BinarySensorEntityDescription):  # type: ignore[misc]
+class AggregateBinarySensorDescription(BinarySensorEntityDescription):
     """Description of an aggregate UNAS binary sensor."""
 
     value_fn: Callable[[dict[str, Any]], bool]
 
 
 @dataclass(frozen=True, kw_only=True)
-class PoolBinarySensorDescription(BinarySensorEntityDescription):  # type: ignore[misc]
+class PoolBinarySensorDescription(BinarySensorEntityDescription):
     """Description of a per-pool UNAS binary sensor."""
 
     value_fn: Callable[[dict[str, Any]], bool]

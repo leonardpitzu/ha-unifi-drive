@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable, Coroutine, Mapping, Sequence
 from datetime import time
-from typing import Any, Mapping, NotRequired, TypeAlias, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 
 import voluptuous as vol
-
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
@@ -51,15 +50,15 @@ from .const import (
 from .coordinator import UnifiUnasCoordinator
 from .entry_options import entry_bool, entry_int, entry_str
 from .exceptions import unifi_unas_error, unifi_unas_validation_error
-from .snapshot_schedule import _schedule_time_parts
+from .runtime import UnifiDriveConfigEntry, coordinator_from_entry_or_none
+from .security import safe_error_text
 from .snapshot_repairs import (
     async_clear_snapshot_action_issues,
     async_create_snapshot_action_issue,
     async_create_snapshot_read_issue,
     async_update_snapshot_read_issue,
 )
-from .runtime import UnifiDriveConfigEntry, coordinator_from_entry_or_none
-from .security import safe_error_text
+from .snapshot_schedule import _schedule_time_parts
 from .snapshot_types import (
     normalize_snapshot_target_type,
     snapshot_target_key,
@@ -68,13 +67,13 @@ from .snapshot_types import (
 )
 from .wake_on_lan import WakeOnLanError, async_send_magic_packet
 
-ServiceHandler = Callable[[ServiceCall], Awaitable[None]]
+ServiceHandler = Callable[[ServiceCall], Coroutine[Any, Any, None]]
 ServiceHandlerFactory = Callable[[HomeAssistant], ServiceHandler]
 
 
-JSONPrimitive: TypeAlias = str | int | float | bool | None
-JSONValue: TypeAlias = JSONPrimitive | list["JSONValue"] | dict[str, "JSONValue"]
-SnapshotTarget: TypeAlias = Mapping[str, JSONValue]
+type JSONPrimitive = str | int | float | bool | None
+type JSONValue = JSONPrimitive | list["JSONValue"] | dict[str, "JSONValue"]
+type SnapshotTarget = Mapping[str, JSONValue]
 
 
 class SnapshotScheduleServiceUpdate(TypedDict):
@@ -271,7 +270,7 @@ _SERVICE_SET_FAN_MODE_SCHEMA = vol.Schema(
         vol.Required(ATTR_FAN_MODE): vol.In(FAN_MODE_OPTIONS),
     }
 )
-_SNAPSHOT_TARGET_SCHEMA_FIELDS = {
+_SNAPSHOT_TARGET_SCHEMA_FIELDS: dict[Any, Any] = {
     vol.Optional(ATTR_ENTRY_ID): str,
     vol.Optional(ATTR_SNAPSHOT_TARGET_KEY): str,
     vol.Optional(ATTR_SNAPSHOT_TARGET_ID): str,

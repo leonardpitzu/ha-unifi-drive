@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
@@ -69,11 +69,11 @@ def _entry_data(
     _ensure_repo_custom_components_path()
     from custom_components.unifi_unas.const import (
         CONF_FAN_CONTROL_ENABLED,
+        CONF_SNAPSHOT_BUTTONS_ENABLED,
         DEFAULT_PORT,
         DEFAULT_SCAN_INTERVAL,
         DEFAULT_SSL,
         DEFAULT_VERIFY_SSL,
-        CONF_SNAPSHOT_BUTTONS_ENABLED,
     )
 
     return {
@@ -203,6 +203,8 @@ async def _setup_snapshot_controls(
 class _SnapshotIntegrationClient:
     """Fake API client that tracks calls and updates snapshot settings in-memory."""
 
+    fan_mode_read_supported = None
+    backup_tasks_read_supported = None
     snapshot_settings_read_supported = True
     native_fan_mode = "Balance"
     poweroff_permission_hint = None
@@ -220,7 +222,7 @@ class _SnapshotIntegrationClient:
             self.fail_next = None
             raise err
 
-    async def async_get_storage(self) -> dict[str, Any]:
+    async def async_get_storage(self, **_kwargs: Any) -> dict[str, Any]:
         return {"_system": {"status": "online"}}
 
     async def async_get_backup_tasks(self) -> list[dict[str, Any]]:

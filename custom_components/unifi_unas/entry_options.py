@@ -9,8 +9,14 @@ from typing import Any, Protocol
 class ConfigEntryLike(Protocol):
     """Config-entry shape needed by data/options helpers."""
 
-    data: Mapping[str, Any]
-    options: Mapping[str, Any]
+    # Read-only properties, so HA's MappingProxyType attributes satisfy the
+    # protocol; mutable attribute members would be invariant and reject them.
+    @property
+    def data(self) -> Mapping[str, Any]: ...
+
+    @property
+    def options(self) -> Mapping[str, Any]: ...
+
 
 FEATURE_OPTION_KEYS: tuple[str, ...] = (
     "scan_interval",

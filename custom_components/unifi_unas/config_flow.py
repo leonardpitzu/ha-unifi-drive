@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
-import logging
-from typing import Any, TypeAlias
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import (
@@ -30,14 +29,22 @@ from .config_flow_identity import (
 from .config_flow_schema import (
     FlowInputError,
     _connection_schema,
-    _connection_schema_fields as _connection_schema_fields_impl,
-    _feature_schema_fields as _feature_schema_fields_impl,
     _feature_schema,
     _merge_feature_defaults,
     _merged_reauth_data,
     _merged_reconfigure_data,
-    _normalize_user_input as _normalize_user_input_impl,
+)
+from .config_flow_schema import (
+    _connection_schema_fields as _connection_schema_fields_impl,
+)
+from .config_flow_schema import (
+    _feature_schema_fields as _feature_schema_fields_impl,
+)
+from .config_flow_schema import (
     _normalize_host_input as _normalize_host_input_impl,
+)
+from .config_flow_schema import (
+    _normalize_user_input as _normalize_user_input_impl,
 )
 from .config_flow_validation import (
     FlowValidator,
@@ -59,20 +66,38 @@ from .discovery import (
     DiscoveredUnasDevice,
     async_discover_unas_devices,
     connection_defaults_from_discovery,
-    discovery_options,
     discovered_unas_device_from_zeroconf,
+    discovery_options,
     feature_defaults_from_discovery,
 )
 from .discovery_identity import (
     apply_discovery_identity_defaults as _apply_discovery_identity_defaults,
-    discovery_observation_entry_data as _discovery_observation_entry_data,
+)
+from .discovery_identity import (
     discovered_device_host_keys as _discovered_device_host_keys,
-    entry_discovery_host_keys as _entry_discovery_host_keys,
+)
+from .discovery_identity import (
     discovery_flow_context_from_device as _discovery_flow_context_from_device,
+)
+from .discovery_identity import (
     discovery_identity_defaults_from_device as _discovery_identity_defaults_from_device,
+)
+from .discovery_identity import (
     discovery_mac_key as _discovery_mac_key,
-    should_write_discovery_identity_update as _should_write_discovery_identity_update,
+)
+from .discovery_identity import (
+    discovery_observation_entry_data as _discovery_observation_entry_data,
+)
+from .discovery_identity import (
+    entry_discovery_host_keys as _entry_discovery_host_keys,
+)
+from .discovery_identity import (
     entry_discovery_mac_keys as _entry_discovery_mac_keys,
+)
+from .discovery_identity import (
+    should_write_discovery_identity_update as _should_write_discovery_identity_update,
+)
+from .discovery_identity import (
     zeroconf_discovery_unique_id as _zeroconf_discovery_unique_id,
 )
 from .entry_options import (
@@ -85,14 +110,14 @@ from .entry_options import (
     merged_feature_options,
 )
 from .runtime import UnifiDriveConfigEntry
-from .wake_on_lan import normalize_mac_address, validate_ipv4_address
 from .security import safe_error_text
+from .wake_on_lan import normalize_mac_address, validate_ipv4_address
 
 _LOGGER = logging.getLogger(__name__)
 _DISCOVERY_METADATA_WRITE_INTERVAL_SECONDS = 5 * 60
 
 
-FlowFormInput: TypeAlias = dict[str, object]
+type FlowFormInput = dict[str, object]
 
 
 @dataclass(slots=True)
@@ -103,7 +128,7 @@ class _FlowState:
     info: Mapping[str, object] | None = None
 
 
-class UnifiUnasOptionsFlow(config_entries.OptionsFlow):  # type: ignore[misc]
+class UnifiUnasOptionsFlow(config_entries.OptionsFlow):
     """Handle option updates for UniFi Drive runtime feature settings."""
 
     def __init__(self, entry: UnifiDriveConfigEntry) -> None:
@@ -322,11 +347,13 @@ def _apply_validated_feature_defaults(
 
 
 class UnifiUnasConfigFlow(
-    config_entries.ConfigFlow, domain=DOMAIN  # type: ignore[call-arg,misc]
+    config_entries.ConfigFlow, domain=DOMAIN
 ):
     """Handle a config flow for UniFi Drive."""
 
     VERSION = 1
+
+    _pending_user_state: _FlowState | None = None
 
     def __init__(self) -> None:
         """Initialize config-flow discovery state."""
@@ -513,7 +540,7 @@ class UnifiUnasConfigFlow(
             else:
                 self._pending_user_state = None
                 return self.async_create_entry(
-                    title=state.info["title"],
+                    title=str(state.info["title"]),
                     data=entry_data_from_data(data),
                     options=feature_options_from_data(data),
                 )

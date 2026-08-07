@@ -9,9 +9,9 @@ from typing import Any
 from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL, EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.device_registry import DeviceInfo
 
 from .api import CannotConnect, InvalidAuth, UnexpectedResponse, UnsupportedFeature
 from .const import (
@@ -31,21 +31,21 @@ from .coordinator import UnifiUnasCoordinator
 from .device import build_device_info
 from .entry_options import entry_bool, entry_int, entry_str, entry_value
 from .exceptions import unifi_unas_error, unifi_unas_validation_error
+from .runtime import UnifiDriveConfigEntry, coordinator_from_entry
+from .security import safe_error_text
 from .snapshot_entities import (
     UnifiUnasSnapshotTargetEntity,
     async_setup_snapshot_target_entities,
+)
+from .snapshot_repairs import (
+    async_clear_snapshot_action_issues,
+    async_create_snapshot_action_issue,
 )
 from .snapshot_types import (
     snapshot_create_button_supported_for_inventory,
     snapshot_target_slug,
     snapshot_target_type,
 )
-from .snapshot_repairs import (
-    async_clear_snapshot_action_issues,
-    async_create_snapshot_action_issue,
-)
-from .runtime import UnifiDriveConfigEntry, coordinator_from_entry
-from .security import safe_error_text
 from .url_helpers import build_console_url
 from .wake_on_lan import WakeOnLanError, async_send_magic_packet, mask_mac_address
 
@@ -148,9 +148,10 @@ def _snapshot_create_button_supported(
 
 class UnifiUnasSystemButton(
     CoordinatorEntity[UnifiUnasCoordinator], ButtonEntity
-):  # type: ignore[misc]
+):
     """Button that triggers a UniFi OS system action."""
 
+    entity_description: SystemButtonDescription
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
 
@@ -217,7 +218,7 @@ class UnifiUnasSystemButton(
         return bool(super().available) and self.coordinator.is_device_online
 
 
-class UnifiUnasWakeOnLanButton(ButtonEntity):  # type: ignore[misc]
+class UnifiUnasWakeOnLanButton(ButtonEntity):
     """Button that sends a Wake-on-LAN magic packet to the UNAS."""
 
     _attr_has_entity_name = True
@@ -305,7 +306,7 @@ class UnifiUnasWakeOnLanButton(ButtonEntity):  # type: ignore[misc]
 
 class UnifiUnasBackupTaskButton(
     CoordinatorEntity[UnifiUnasCoordinator], ButtonEntity
-):  # type: ignore[misc]
+):
     """Button that triggers a remote-backup task on the UNAS."""
 
     _attr_has_entity_name = True
@@ -388,7 +389,7 @@ class UnifiUnasBackupTaskButton(
 
 class UnifiUnasSnapshotButton(
     UnifiUnasSnapshotTargetEntity, ButtonEntity
-):  # type: ignore[misc]
+):
     """Button that creates a snapshot on the UNAS."""
 
     def __init__(

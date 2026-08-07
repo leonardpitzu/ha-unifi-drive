@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
+
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -35,7 +36,7 @@ async def async_setup_entry(
 
 class UnifiUnasSnapshotEnabledSwitch(
     UnifiUnasSnapshotTargetEntity, SwitchEntity
-):  # type: ignore[misc]
+):
     """Switch that enables snapshot protection for a target."""
 
     def __init__(

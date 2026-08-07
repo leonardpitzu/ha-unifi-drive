@@ -9,6 +9,7 @@ from tests.module_stubs import (
     load_integration_module,
 )
 
+
 def _load_snapshot_payload_module():
     """Load the snapshot payload module with integration stubs."""
     load_const_module()

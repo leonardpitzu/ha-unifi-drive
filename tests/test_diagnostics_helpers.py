@@ -1,12 +1,12 @@
 """Unit tests for diagnostics redaction."""
 
 import asyncio
-from enum import Enum
-from importlib.util import module_from_spec, spec_from_file_location
 import json
-from pathlib import Path
 import sys
 import types
+from enum import StrEnum
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 
 
 def _redact_data(value, keys):
@@ -52,7 +52,7 @@ def _load_diagnostics_module():
     const_pkg.CONF_PASSWORD = "password"
     const_pkg.CONF_USERNAME = "username"
 
-    class Platform(str, Enum):
+    class Platform(StrEnum):
         BINARY_SENSOR = "binary_sensor"
         BUTTON = "button"
         NUMBER = "number"

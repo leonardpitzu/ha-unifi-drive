@@ -84,7 +84,7 @@ class UnifiUnasBaseBinarySensor(
     UnifiUnasDeviceInfoMixin,
     CoordinatorEntity[UnifiUnasCoordinator],
     BinarySensorEntity,
-):  # type: ignore[misc]
+):
     """Common base for UniFi Drive binary sensors."""
 
     _attr_has_entity_name = True

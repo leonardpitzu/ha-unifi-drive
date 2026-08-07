@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import Any
+
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from typing import Any
 
 from .const import MAX_SNAPSHOT_LIMIT, MIN_SNAPSHOT_LIMIT
 from .coordinator import UnifiUnasCoordinator
@@ -41,7 +42,7 @@ async def async_setup_entry(
 
 class UnifiUnasSnapshotLimitNumber(
     UnifiUnasSnapshotTargetEntity, NumberEntity
-):  # type: ignore[misc]
+):
     """Number that configures snapshot retention limit for a target."""
 
     _attr_native_min_value = MIN_SNAPSHOT_LIMIT
@@ -91,7 +92,7 @@ class UnifiUnasSnapshotLimitNumber(
 
 class UnifiUnasSnapshotMonthlyDayNumber(
     UnifiUnasSnapshotTargetEntity, NumberEntity
-):  # type: ignore[misc]
+):
     """Number that configures the primary monthly snapshot day."""
 
     _attr_native_min_value = 1

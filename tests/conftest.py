@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import sys
 from importlib.util import find_spec
 from types import ModuleType
-import sys
 
 import pytest
 

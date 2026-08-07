@@ -32,10 +32,10 @@ class ApiTransportMixin:
         def base_url(self) -> str: ...
 
     @property
-    def _ssl(self) -> bool | None:
-        """Return aiohttp SSL validation option."""
+    def _ssl(self) -> bool:
+        """Return aiohttp SSL validation option; ignored for plain HTTP URLs."""
         if self._scheme != "https":
-            return None
+            return True
         return self._verify_ssl
 
     def _url(self, path: str) -> str:

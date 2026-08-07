@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -34,8 +35,21 @@ class ApiStorageMixin:
             await self.async_login()
         return await self.async_get_storage()
 
-    async def async_get_storage(self) -> dict[str, Any]:
-        """Return UniFi Drive storage information."""
+    async def _optional_json(self, path: str, label: str) -> dict[str, Any] | None:
+        """Fetch a best-effort metadata endpoint, returning None on failure."""
+        try:
+            return await self._request_json("GET", path)
+        except (CannotConnect, InvalidAuth, UnexpectedResponse) as err:
+            _LOGGER.debug("Could not read %s: %s", label, safe_error_text(err))
+            return None
+
+    async def async_get_storage(self, *, refresh_system: bool = True) -> dict[str, Any]:
+        """Return UniFi Drive storage information.
+
+        The three metadata endpoints do not depend on each other, so they are
+        fetched concurrently instead of in series. `/api/system` only changes on
+        a firmware update, so callers may skip it and reuse the cached payload.
+        """
         await self._ensure_authenticated()
         try:
             data = await self._request_json("GET", DRIVE_STORAGE_PATH)
@@ -47,29 +61,27 @@ class ApiStorageMixin:
 
         if mode := self._extract_fan_mode(data):
             self._last_fan_mode = mode
-        try:
-            system_data = await self._request_json("GET", SYSTEM_PATH)
-            data["_system"] = system_data
+
+        include_system = refresh_system or self._system_info is None
+
+        async def _system_metadata() -> dict[str, Any] | None:
+            if not include_system:
+                return self._system_info
+            return await self._optional_json(SYSTEM_PATH, "UniFi OS system metadata")
+
+        network_io, device_info, system_data = await asyncio.gather(
+            self._optional_json(NETWORK_IO_PATH, "UniFi Drive network I/O metadata"),
+            self._optional_json(
+                DRIVE_DEVICE_INFO_PATH, "UniFi Drive device-info metadata"
+            ),
+            _system_metadata(),
+        )
+
+        if system_data is not None:
             self._system_info = system_data
-        except (CannotConnect, InvalidAuth, UnexpectedResponse) as err:
-            _LOGGER.debug(
-                "Could not read UniFi OS system metadata: %s",
-                safe_error_text(err),
-            )
-        try:
-            data["_network_io"] = await self._request_json("GET", NETWORK_IO_PATH)
-        except (CannotConnect, InvalidAuth, UnexpectedResponse) as err:
-            _LOGGER.debug(
-                "Could not read UniFi Drive network I/O metadata: %s",
-                safe_error_text(err),
-            )
-        try:
-            data["_device_info"] = await self._request_json(
-                "GET", DRIVE_DEVICE_INFO_PATH
-            )
-        except (CannotConnect, InvalidAuth, UnexpectedResponse) as err:
-            _LOGGER.debug(
-                "Could not read UniFi Drive device-info metadata: %s",
-                safe_error_text(err),
-            )
+            data["_system"] = system_data
+        if network_io is not None:
+            data["_network_io"] = network_io
+        if device_info is not None:
+            data["_device_info"] = device_info
         return data

@@ -38,7 +38,7 @@ async def async_setup_entry(
 
 class UnifiUnasSnapshotScheduleTime(
     UnifiUnasSnapshotTargetEntity, TimeEntity
-):  # type: ignore[misc]
+):
     """Time entity that configures snapshot schedule time."""
 
     def __init__(

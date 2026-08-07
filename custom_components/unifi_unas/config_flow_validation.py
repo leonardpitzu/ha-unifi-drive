@@ -7,7 +7,6 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 import aiohttp
-
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_HOST,

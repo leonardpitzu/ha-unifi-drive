@@ -6,12 +6,15 @@ from typing import Any
 
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN
-from .const import DEFAULT_NAME
+from .const import DEFAULT_NAME, DOMAIN
 from .runtime import UnifiDriveConfigEntry
 from .system_metadata import (
     _text,
+)
+from .system_metadata import (
     system_payload as _system_payload,
+)
+from .system_metadata import (
     unifi_os_version as _unifi_os_version,
 )
 
@@ -37,17 +40,17 @@ def build_device_info(
     )
     sw_version = _unifi_os_version(payload)
 
-    kwargs: dict[str, Any] = {
-        "identifiers": {(DOMAIN, device_identifier)},
-        "manufacturer": "Ubiquiti",
-        "model": model,
-        "name": entry.title,
-        "configuration_url": configuration_url
+    device_info = DeviceInfo(
+        identifiers={(DOMAIN, device_identifier)},
+        manufacturer="Ubiquiti",
+        model=model,
+        name=entry.title,
+        configuration_url=configuration_url
         or getattr(getattr(coordinator, "client", None), "base_url", None),
-    }
+    )
     if sw_version:
-        kwargs["sw_version"] = sw_version
-    return DeviceInfo(**kwargs)
+        device_info["sw_version"] = sw_version
+    return device_info
 
 
 def _device_metadata_payload(coordinator: Any) -> dict[str, Any]:

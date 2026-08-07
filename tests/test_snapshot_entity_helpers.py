@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import asyncio
-from enum import Enum
-from importlib.util import module_from_spec, spec_from_file_location
-from pathlib import Path
 import sys
 import types
+from enum import StrEnum
+from importlib.util import module_from_spec, spec_from_file_location
+from pathlib import Path
 
 
 def _load_snapshot_entities_module():
@@ -35,10 +35,10 @@ def _load_snapshot_entities_module():
 
     const_pkg = types.ModuleType("homeassistant.const")
 
-    class EntityCategory(str, Enum):
+    class EntityCategory(StrEnum):
         CONFIG = "config"
 
-    class Platform(str, Enum):
+    class Platform(StrEnum):
         BINARY_SENSOR = "binary_sensor"
         BUTTON = "button"
         NUMBER = "number"

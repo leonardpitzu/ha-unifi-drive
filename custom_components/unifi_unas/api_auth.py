@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from json import JSONDecodeError
+import asyncio
 from collections.abc import Awaitable, Callable
+from json import JSONDecodeError
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from aiohttp import ClientResponse, ClientSession
@@ -23,6 +24,7 @@ class ApiAuthMixin:
 
     _authenticated: bool
     _login_data: dict[str, Any] | None
+    _login_lock: asyncio.Lock
     _password: str
     _session: ClientSession
     _system_info: dict[str, Any] | None
@@ -32,7 +34,7 @@ class ApiAuthMixin:
 
     if TYPE_CHECKING:
         @property
-        def _ssl(self) -> bool | None: ...
+        def _ssl(self) -> bool: ...
         @property
         def base_url(self) -> str: ...
         def _headers(self) -> dict[str, str]: ...
@@ -210,6 +212,15 @@ class ApiAuthMixin:
                 "UniFi username and password are required when no API key is configured"
             )
 
+        # Concurrent callers would otherwise each run a full login and clobber
+        # each other's CSRF token mid-flight.
+        async with self._login_lock:
+            if self._authenticated:
+                return
+            await self._async_login_locked()
+
+    async def _async_login_locked(self) -> None:
+        """Perform the login exchange; callers must hold the login lock."""
         await self._prime_csrf_token()
 
         payload = {

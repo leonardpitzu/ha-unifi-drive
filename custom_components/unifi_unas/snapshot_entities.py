@@ -21,19 +21,19 @@ from .entity_base import UnifiUnasDeviceInfoMixin
 from .entry_options import entry_bool
 from .exceptions import unifi_unas_error, unifi_unas_validation_error
 from .runtime import UnifiDriveConfigEntry
-from .snapshot_types import (
-    snapshot_target_key,
-    snapshot_target_name,
-    snapshot_target_slug,
-    snapshot_target_type,
-)
+from .security import safe_error_text
 from .snapshot_repairs import (
     async_clear_snapshot_action_issues,
     async_clear_snapshot_target_missing_issue,
     async_create_snapshot_action_issue,
     async_update_snapshot_target_missing_issue,
 )
-from .security import safe_error_text
+from .snapshot_types import (
+    snapshot_target_key,
+    snapshot_target_name,
+    snapshot_target_slug,
+    snapshot_target_type,
+)
 
 SnapshotTargetEntityFactory = Callable[
     [Mapping[str, object]],
@@ -41,11 +41,11 @@ SnapshotTargetEntityFactory = Callable[
 ]
 SnapshotTargetFilter = Callable[[Mapping[str, object]], bool]
 _SNAPSHOT_TARGET_ENTITIES: WeakKeyDictionary[
-    UnifiUnasCoordinator, dict[str, WeakSet["UnifiUnasSnapshotTargetEntity"]]
+    UnifiUnasCoordinator, dict[str, WeakSet[UnifiUnasSnapshotTargetEntity]]
 ] = WeakKeyDictionary()
 _SNAPSHOT_TARGET_ENTITIES_BY_ID: dict[
     int,
-    dict[str, WeakSet["UnifiUnasSnapshotTargetEntity"]],
+    dict[str, WeakSet[UnifiUnasSnapshotTargetEntity]],
 ] = {}
 _SNAPSHOT_TARGET_MISSING_REPAIR_THRESHOLD = 3
 _SNAPSHOT_TARGET_MISSING_STATE = "_unifi_unas_snapshot_target_missing_state"
@@ -53,7 +53,7 @@ _SNAPSHOT_TARGET_MISSING_STATE = "_unifi_unas_snapshot_target_missing_state"
 
 def _snapshot_target_bucket(
     coordinator: UnifiUnasCoordinator,
-) -> dict[str, WeakSet["UnifiUnasSnapshotTargetEntity"]]:
+) -> dict[str, WeakSet[UnifiUnasSnapshotTargetEntity]]:
     """Return per-coordinator storage for snapshot target entities."""
     try:
         return _SNAPSHOT_TARGET_ENTITIES.setdefault(coordinator, {})

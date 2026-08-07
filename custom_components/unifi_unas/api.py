@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from aiohttp import ClientSession
 
 from .api_auth import ApiAuthMixin
 from .api_backup import ApiBackupMixin
-from .api_fan import ApiFanMixin
-from .api_snapshot import ApiSnapshotMixin
-from .api_storage import ApiStorageMixin
-from .api_system import ApiSystemMixin
-from .api_transport import ApiTransportMixin
-from .api_updates import ApiUpdatesMixin
 from .api_errors import (
     CannotConnect,
     InvalidAuth,
@@ -21,6 +16,12 @@ from .api_errors import (
     UnifiUnasApiError,
     UnsupportedFeature,
 )
+from .api_fan import ApiFanMixin
+from .api_snapshot import ApiSnapshotMixin
+from .api_storage import ApiStorageMixin
+from .api_system import ApiSystemMixin
+from .api_transport import ApiTransportMixin
+from .api_updates import ApiUpdatesMixin
 from .url_helpers import build_console_url, format_host_for_url
 
 __all__ = [
@@ -74,6 +75,7 @@ class UnifiUnasApiClient(
         self._csrf_token: str | None = None
         self._token_cookie: str | None = None
         self._authenticated = self._use_api_key_auth
+        self._login_lock = asyncio.Lock()
         self._login_data: dict[str, Any] | None = None
         self._system_info: dict[str, Any] | None = None
         self._last_fan_mode: str | None = None

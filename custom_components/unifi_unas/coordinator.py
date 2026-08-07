@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
-import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.const import CONF_SCAN_INTERVAL
@@ -31,6 +32,7 @@ from .const import (
 )
 from .entry_options import entry_bool, entry_int
 from .entry_reload import EntryReloadSignature
+from .security import safe_error_text
 from .snapshot_inventory import (
     SNAPSHOT_INVENTORY_REASON_CONNECTION,
     SNAPSHOT_INVENTORY_REASON_PERMISSION,
@@ -43,7 +45,6 @@ from .snapshot_repairs import (
     async_create_snapshot_read_issue,
     async_update_snapshot_read_issue,
 )
-from .security import safe_error_text
 from .snapshot_types import snapshot_target_key, snapshot_target_type
 
 if TYPE_CHECKING:
@@ -53,9 +54,14 @@ _LOGGER = logging.getLogger(__name__)
 _SNAPSHOT_INVENTORY_UNAVAILABLE_MARKER = "not available on this system"
 _SNAPSHOT_INVENTORY_REFRESH_INTERVAL = timedelta(minutes=10)
 _CONNECTION_FAILURES_BEFORE_OFFLINE = 2
+# Firmware versions, fan mode, backup tasks and snapshot settings only change on
+# user action, so they are polled on their own slower cadence.
+_SLOW_REFRESH_INTERVAL = timedelta(minutes=10)
+_OPTIONAL_REFRESH_BUDGET_RATIO = 0.5
+_MIN_OPTIONAL_REFRESH_BUDGET = 10.0
 
 
-class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: ignore[misc]
+class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinate polling of UniFi Drive storage data."""
 
     config_entry: UnifiDriveConfigEntry
@@ -86,6 +92,7 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
         self.snapshot_inventory: dict[str, dict[str, Any]] = {}
         self.snapshot_inventory_errors: dict[str, str] = {}
         self.snapshot_inventory_skip_reasons: dict[str, str] = {}
+        self.snapshot_target_missing_counts: dict[str, dict[str, Any]] = {}
         self.entry_reload_signature: EntryReloadSignature | None = None
         self._connection_failure_count = 0
         self._connection_transient_logged = False
@@ -94,6 +101,8 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
         self._snapshot_inventory_refresh_requested = False
         self._snapshot_inventory_target_keys: set[str] = set()
         self._first_refresh_core_only = False
+        self._last_slow_refresh: datetime | None = None
+        self._slow_refresh_requested = False
         interval = entry_int(entry, CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         interval = max(MIN_SCAN_INTERVAL, min(MAX_SCAN_INTERVAL, interval))
 
@@ -117,13 +126,44 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
         if not isinstance(self.data, dict):
             return
 
-        await self._async_refresh_optional_features()
+        await self._async_refresh_optional_features(include_slow=True)
+        self._mark_slow_refreshed(datetime.now(UTC))
         self.async_set_updated_data(self.data)
+
+    async def async_request_refresh(self) -> None:
+        """Refresh everything: an explicit request follows a user action."""
+        self.request_slow_refresh()
+        await super().async_request_refresh()
+
+    def request_slow_refresh(self) -> None:
+        """Force the next poll to include the slow-changing endpoints."""
+        self._slow_refresh_requested = True
+
+    def _slow_refresh_due(self, now: datetime) -> bool:
+        """Return whether the slow-changing endpoints should be polled again.
+
+        The pending request is consumed up front so a request raised while the
+        poll is in flight survives for the next one.
+        """
+        due = (
+            self._slow_refresh_requested
+            or self._last_slow_refresh is None
+            or now - self._last_slow_refresh >= _SLOW_REFRESH_INTERVAL
+        )
+        if due:
+            self._slow_refresh_requested = False
+        return due
+
+    def _mark_slow_refreshed(self, now: datetime) -> None:
+        """Record that the slow-changing endpoints were just polled."""
+        self._last_slow_refresh = now
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch storage data from the UNAS."""
+        now = datetime.now(UTC)
+        slow_due = self._slow_refresh_due(now)
         try:
-            storage = await self.client.async_get_storage()
+            storage = await self.client.async_get_storage(refresh_system=slow_due)
             self._handle_connection_recovered()
             self._connection_failure_count = 0
             self.is_device_online = True
@@ -137,18 +177,44 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
         if self._first_refresh_core_only:
             return storage
 
-        await self._async_refresh_optional_features()
+        # Optional endpoints must never make a poll outrun its own interval.
+        budget = max(
+            _MIN_OPTIONAL_REFRESH_BUDGET,
+            self.update_interval.total_seconds() * _OPTIONAL_REFRESH_BUDGET_RATIO
+            if self.update_interval
+            else _MIN_OPTIONAL_REFRESH_BUDGET,
+        )
+        try:
+            async with asyncio.timeout(budget):
+                await self._async_refresh_optional_features(include_slow=slow_due)
+        except TimeoutError:
+            _LOGGER.debug(
+                "Optional UniFi Drive endpoints exceeded the %.0fs refresh budget",
+                budget,
+            )
+
+        if slow_due:
+            self._mark_slow_refreshed(now)
         return storage
 
-    async def _async_refresh_optional_features(self) -> None:
-        """Refresh optional endpoints without blocking core storage data."""
+    async def _async_refresh_optional_features(self, *, include_slow: bool) -> None:
+        """Refresh optional endpoints without blocking core storage data.
+
+        Fan mode, backup tasks and snapshot settings only change on user action,
+        so they ride the slow tier instead of every core poll.
+        """
+        if not self.snapshot_buttons_enabled:
+            self._clear_snapshot_settings_state()
+
+        if not include_slow:
+            return
+
+        # Deliberately sequential. Gathering these adds an event-loop suspension
+        # that reorders Home Assistant's entity setup during the first refresh.
         await self._refresh_fan_mode()
         await self._refresh_backup_tasks()
-
         if self.snapshot_buttons_enabled:
             await self._refresh_snapshot_settings()
-        else:
-            self._clear_snapshot_settings_state()
 
     def _handle_connection_recovered(self) -> None:
         """Log once when polling recovers after a connection failure."""
@@ -197,6 +263,8 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
         """Refresh fan mode without treating optional endpoint failures as fatal."""
         if not self.fan_control_enabled:
             return
+        if self.client.fan_mode_read_supported is False:
+            return
 
         try:
             mode = await self.client.async_get_fan_mode()
@@ -212,6 +280,8 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
 
     async def _refresh_backup_tasks(self) -> None:
         """Refresh backup tasks while tolerating optional API gaps."""
+        if self.client.backup_tasks_read_supported is False:
+            return
         try:
             self.backup_tasks = await self.client.async_get_backup_tasks()
         except (CannotConnect, InvalidAuth, UnexpectedResponse, UnsupportedFeature) as err:
@@ -222,7 +292,11 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
             self.backup_tasks = []
 
     async def _refresh_snapshot_settings(self) -> None:
-        """Refresh snapshot settings and trigger inventory refresh if possible."""
+        """Refresh snapshot settings and trigger inventory refresh if possible.
+
+        Deliberately not gated on `snapshot_settings_read_supported`: this call
+        also drives the snapshot repair-issue lifecycle.
+        """
         try:
             self.snapshot_settings = await self.client.async_get_snapshot_settings()
         except (
@@ -263,6 +337,7 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
     def request_snapshot_inventory_refresh(self) -> None:
         """Force the next coordinator refresh to read snapshot inventory."""
         self._snapshot_inventory_refresh_requested = True
+        self.request_slow_refresh()
 
     async def _async_refresh_snapshot_inventory_if_due(self) -> None:
         """Refresh snapshot inventory on a slower cadence than storage polling."""
@@ -343,6 +418,7 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
         snapshot_inventory_supported_by_type = _snapshot_inventory_type_support_map(
             self.client
         )
+        pending: list[tuple[str, dict[str, Any], str | None]] = []
         for target in self.snapshot_settings:
             if not isinstance(target, dict):
                 continue
@@ -361,34 +437,40 @@ class UnifiUnasCoordinator(DataUpdateCoordinator[dict[str, Any]]):  # type: igno
                 inventory_errors[target_key] = reason
                 self.snapshot_inventory_skip_reasons[target_key] = reason
                 continue
+            pending.append((target_key, target, target_type))
+
+        # Deliberately sequential: gathering these reorders Home Assistant's
+        # entity setup, and the inventory read is already throttled to 10 min.
+        for pending_key, pending_target, pending_type in pending:
             try:
-                inventory[target_key] = (
-                    await self.client.async_get_snapshot_inventory_target(target)
+                inventory[pending_key] = (
+                    await self.client.async_get_snapshot_inventory_target(pending_target)
                 )
-                self.snapshot_inventory_skip_reasons.pop(target_key, None)
+                self.snapshot_inventory_skip_reasons.pop(pending_key, None)
             except (
                 CannotConnect,
                 InvalidAuth,
                 UnexpectedResponse,
                 UnsupportedFeature,
             ) as err:
-                inventory_errors[target_key] = _snapshot_inventory_error_reason(err)
+                inventory_errors[pending_key] = _snapshot_inventory_error_reason(err)
                 if _snapshot_inventory_read_should_be_skipped(err):
-                    self.snapshot_inventory_skip_reasons[target_key] = (
-                        inventory_errors[target_key]
+                    self.snapshot_inventory_skip_reasons[pending_key] = (
+                        inventory_errors[pending_key]
                     )
                 _LOGGER.debug(
                     "Could not read UniFi Drive snapshot inventory for %s: %s",
-                    target_type,
+                    pending_type,
                     safe_error_text(err),
                 )
             except (RuntimeError, TypeError, ValueError) as err:
-                inventory_errors[target_key] = _snapshot_inventory_error_reason(err)
+                inventory_errors[pending_key] = _snapshot_inventory_error_reason(err)
                 _LOGGER.debug(
                     "Unexpectedly failed to read snapshot inventory for %s: %s",
-                    target_type,
+                    pending_type,
                     safe_error_text(err),
                 )
+
         self.snapshot_inventory_skip_reasons = {
             target_key: reason
             for target_key, reason in self.snapshot_inventory_skip_reasons.items()

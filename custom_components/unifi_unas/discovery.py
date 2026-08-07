@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from importlib import import_module
-import re
 from typing import Any, Protocol
 
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_SSL, CONF_VERIFY_SSL
@@ -18,9 +18,17 @@ from .const import (
 )
 from .discovery_common import (
     clean_host_label as _clean_host_label,
+)
+from .discovery_common import (
     clean_text as _clean_text,
+)
+from .discovery_common import (
     device_key as _device_key,
+)
+from .discovery_common import (
     mac_from_eui64_ipv6 as _mac_from_eui64_ipv6,
+)
+from .discovery_common import (
     parse_bool as _parse_bool,
 )
 from .discovery_identity import discovery_host_key, discovery_mac_key
@@ -176,10 +184,7 @@ async def async_discover_unas_devices(
     """Scan the local network for UniFi Drive / UNAS devices."""
     if scanner_factory is None:
         try:
-            scanner_factory = getattr(
-                import_module("unifi_discovery"),
-                "AIOUnifiScanner",
-            )
+            scanner_factory = import_module("unifi_discovery").AIOUnifiScanner
         except ImportError:
             return ()
 

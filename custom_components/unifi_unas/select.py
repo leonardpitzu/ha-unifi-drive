@@ -8,6 +8,7 @@ from typing import Any
 from homeassistant.components.select import SelectEntity
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -31,7 +32,6 @@ from .snapshot_entities import (
     async_setup_snapshot_target_entities,
 )
 from .snapshot_schedule import _snapshot_first_schedule_day
-from homeassistant.helpers.device_registry import DeviceInfo
 
 WEEKDAY_OPTION_VALUES = {
     option: index for index, option in enumerate(SNAPSHOT_WEEKDAY_OPTIONS)
@@ -68,7 +68,7 @@ async def async_setup_entry(
 
 class UnifiUnasFanModeSelect(
     CoordinatorEntity[UnifiUnasCoordinator], SelectEntity, RestoreEntity
-):  # type: ignore[misc]
+):
     """Select for the native UniFi Drive fan mode."""
 
     _attr_has_entity_name = True
@@ -186,7 +186,7 @@ class UnifiUnasFanModeSelect(
 
 class UnifiUnasSnapshotScheduleSelect(
     UnifiUnasSnapshotTargetEntity, SelectEntity
-):  # type: ignore[misc]
+):
     """Select that configures snapshot schedule frequency."""
 
     _attr_options = list(SNAPSHOT_SCHEDULE_OPTIONS)
@@ -231,7 +231,7 @@ class UnifiUnasSnapshotScheduleSelect(
 
 class UnifiUnasSnapshotWeekdaySelect(
     UnifiUnasSnapshotTargetEntity, SelectEntity
-):  # type: ignore[misc]
+):
     """Select that configures the primary weekly snapshot day."""
 
     _attr_options = list(SNAPSHOT_WEEKDAY_OPTIONS)

@@ -14,9 +14,9 @@ from homeassistant.components.update import (
 )
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.device_registry import DeviceInfo
 
 from .api import (
     CannotConnect,
@@ -32,8 +32,14 @@ from .runtime import UnifiDriveConfigEntry, coordinator_from_entry
 from .security import safe_error_text
 from .system_metadata import (
     drive_version as _drive_version,
+)
+from .system_metadata import (
     normalized_token as _normalized_token,
+)
+from .system_metadata import (
     system_payload as _system_payload,
+)
+from .system_metadata import (
     unifi_os_version as _unifi_os_version,
 )
 
@@ -41,7 +47,7 @@ PARALLEL_UPDATES = 1
 
 
 @dataclass(frozen=True, kw_only=True)
-class UnifiDriveUpdateDescription(UpdateEntityDescription):  # type: ignore[misc]
+class UnifiDriveUpdateDescription(UpdateEntityDescription):
     """Description of a UniFi Drive update entity."""
 
     installed_version_fn: Callable[[dict[str, Any]], str | None]
@@ -98,7 +104,7 @@ async def async_setup_entry(
 class UnifiDriveUpdateEntity(
     CoordinatorEntity[UnifiUnasCoordinator],
     UpdateEntity,
-):  # type: ignore[misc]
+):
     """UniFi OS or Drive update entity."""
 
     entity_description: UnifiDriveUpdateDescription
@@ -192,8 +198,8 @@ class UnifiDriveUpdateEntity(
     async def async_install(
         self,
         version: str | None,
-        _backup: bool,
-        **_kwargs: Any,
+        backup: bool,
+        **kwargs: Any,
     ) -> None:
         """Install the currently offered update."""
         latest_version = self.latest_version

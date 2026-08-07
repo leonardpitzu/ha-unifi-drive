@@ -1,0 +1,6 @@
+mypy==2.1.0
+pytest>=8.0
+pytest-asyncio>=0.23
+pytest-cov>=4.0
+pytest-homeassistant-custom-component==0.13.354
+ruff==0.16.1

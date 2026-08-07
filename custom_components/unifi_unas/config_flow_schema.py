@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from ipaddress import IPv4Address, IPv6Address, ip_address
-import re
 from typing import Any
 from urllib.parse import urlsplit
 
 import voluptuous as vol
-
 from homeassistant.const import (
     CONF_API_KEY,
     CONF_HOST,
@@ -22,15 +21,15 @@ from homeassistant.const import (
 )
 
 from .const import (
-    CONF_FAN_CONTROL_ENABLED,
     CONF_DISCOVERY_DEBUG,
+    CONF_FAN_CONTROL_ENABLED,
     CONF_SNAPSHOT_BUTTONS_ENABLED,
     CONF_WOL_BROADCAST_ADDRESS,
     CONF_WOL_ENABLED,
     CONF_WOL_MAC_ADDRESS,
     CONF_WOL_PORT,
-    DEFAULT_FAN_CONTROL_ENABLED,
     DEFAULT_DISCOVERY_DEBUG,
+    DEFAULT_FAN_CONTROL_ENABLED,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SNAPSHOT_BUTTONS_ENABLED,

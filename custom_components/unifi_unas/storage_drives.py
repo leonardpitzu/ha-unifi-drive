@@ -614,16 +614,16 @@ def _drive_attributes(drive: dict[str, Any]) -> dict[str, Any]:
         ("nvme_version", ("nvmeVersion", "nvme_version")),
         ("state", ("state",)),
     ):
-        if (value := _drive_text(drive, in_keys)) is not None:
-            attrs[out_key] = value
+        if (text_value := _drive_text(drive, in_keys)) is not None:
+            attrs[out_key] = text_value
 
     for out_key, in_keys in (
         ("rpm", ("rpm",)),
         ("read_error_rate", ("readErrorRate", "read_error_rate")),
         ("smart_read_error_count", ("smartReadErrorCount", "smart_read_error_count")),
     ):
-        if (value := _drive_number(drive, in_keys)) is not None:
-            attrs[out_key] = int(round(value))
+        if (number_value := _drive_number(drive, in_keys)) is not None:
+            attrs[out_key] = int(round(number_value))
 
     for out_key, in_key in (
         ("smart_test_supported", "smartTestSupported"),

@@ -29,13 +29,13 @@ from .storage_common import (
     _text,
 )
 from .storage_drives import (
-    DRIVE_INDEX_KEY_RE,
     DRIVE_ID_KEYS,
+    DRIVE_INDEX_KEY_RE,
     DRIVE_METRIC_KEYS,
     DRIVE_POOL_KEYS,
     DRIVE_STRONG_ID_KEYS,
-    _collect_drive_like_dicts,
     _cache_drives,
+    _collect_drive_like_dicts,
     _drive_attributes,
     _drive_bad_sectors,
     _drive_capacity,
@@ -101,8 +101,14 @@ from .storage_throughput import (
 )
 from .system_metadata import (
     drive_version as _drive_version,
+)
+from .system_metadata import (
     normalized_token as _normalized_token,
+)
+from .system_metadata import (
     system_payload as _system_payload,
+)
+from .system_metadata import (
     unifi_os_version as _unifi_os_version,
 )
 

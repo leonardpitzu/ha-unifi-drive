@@ -20,8 +20,8 @@ from .storage_drives import (
     _cache_drives,
     _drive_life_span,
     _pool_at_risk_drive_count,
-    _pool_drives,
     _pool_drive_temperatures,
+    _pool_drives,
 )
 from .system_metadata import normalized_token as _normalized_token
 

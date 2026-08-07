@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeAlias, cast
+from typing import TYPE_CHECKING, cast
 
 from homeassistant.config_entries import ConfigEntry
 
 if TYPE_CHECKING:
     from .coordinator import UnifiUnasCoordinator
 
-    UnifiDriveConfigEntry: TypeAlias = ConfigEntry[UnifiUnasCoordinator]
+    type UnifiDriveConfigEntry = ConfigEntry[UnifiUnasCoordinator]
 else:
     # Keep runtime imports compatible with lightweight tests that stub
     # ConfigEntry with a non-subscriptable object.
@@ -18,7 +18,7 @@ else:
 
 def coordinator_from_entry(entry: UnifiDriveConfigEntry) -> UnifiUnasCoordinator:
     """Return the loaded coordinator stored on ConfigEntry.runtime_data."""
-    return cast("UnifiUnasCoordinator", entry.runtime_data)
+    return entry.runtime_data
 
 
 def coordinator_from_entry_or_none(
